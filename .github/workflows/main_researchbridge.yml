@@ -1,3 +1,6 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
 name: Build and deploy Node.js app to Azure Web App - researchbridge
 
 on:
@@ -21,13 +24,15 @@ jobs:
           node-version: '22.x'
 
       - name: npm install, build, and test
+        working-directory: ./FrontEnd
         run: |
           npm install
           npm run build --if-present
           npm run test --if-present
 
       - name: Zip artifact for deployment
-        run: zip -r release.zip ./dist/*  # Update this if your app is built into a different directory
+        working-directory: ./FrontEnd
+        run: zip -r ../release.zip .
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -42,8 +47,8 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write # This is required for requesting the JWT
-      contents: read # This is required for actions/checkout
+      id-token: write
+      contents: read
 
     steps:
       - name: Download artifact from build job
@@ -67,4 +72,4 @@ jobs:
         with:
           app-name: 'researchbridge'
           slot-name: 'Production'
-          package: ./dist  # Use this if your built app is located in the 'dist' folder, or update accordingly.
+          package: .

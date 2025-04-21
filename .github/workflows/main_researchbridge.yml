@@ -28,7 +28,7 @@ jobs:
         working-directory: ./BackEnd
 
       - name: Zip app for deployment
-        run: zip -r release.zip ./
+        run: zip -r release.zip ./ 
         working-directory: ./BackEnd
 
       - name: Upload artifact

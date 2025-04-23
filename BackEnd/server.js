@@ -158,7 +158,7 @@ const checkAuth = (req, res, next) => {
 };
 
 app.get("/", (req, res) => {
-  res.send("Hello from the backend!");
+  res.send(BACKEND_URL);
 });
 
 // Google OAuth routes

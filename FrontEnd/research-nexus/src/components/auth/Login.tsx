@@ -9,6 +9,7 @@ import config from '../../config';
 const Login: React.FC = () => {
   const handleGoogleLogin = () => {
     // Redirect to backend Google OAuth route
+    console.log(config.API_URL);
     window.location.href = `${config.API_URL}/auth/google`;
   };
 

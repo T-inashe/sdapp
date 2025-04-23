@@ -157,6 +157,10 @@ const checkAuth = (req, res, next) => {
   }
 };
 
+app.get("/", (req, res) => {
+  res.send("Hello from the backend!");
+});
+
 // Google OAuth routes
 app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })

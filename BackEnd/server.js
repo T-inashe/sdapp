@@ -158,7 +158,7 @@ const checkAuth = (req, res, next) => {
 };
 
 app.get("/", (req, res) => {
-  res.send(BACKEND_URL);
+  res.send("we are live" + BACKEND_URL);
 });
 
 // Google OAuth routes

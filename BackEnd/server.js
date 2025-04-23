@@ -25,10 +25,11 @@ const GOOGLE_CALLBACK_URL = `${BACKEND_URL}/auth/google/callback`;
 
 // Database configuration
 const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "fundme",
+  host: "sql7.freesqldatabase.com",
+  user: "sql7775008",
+  password: "85VfWdsNTQ",
+  database: "sql7775008",
+  port: "3306",
 };
 
 // Express app setup
@@ -60,6 +61,35 @@ app.use(passport.session());
 
 // Database connection
 const db = mysql.createConnection(dbConfig);
+
+// Connect to the database
+db.connect((err) => {
+  if (err) {
+    console.error('Error connecting to the database:', err);
+    return;
+  }
+  
+  console.log('Successfully connected to the database!');
+  
+  // Test query
+  db.query('SHOW TABLES', (err, results) => {
+    if (err) {
+      console.error('Error executing query:', err);
+    } else {
+      console.log('Tables in the database:');
+      console.log(results);
+    }
+    
+    // Close the db
+    // db.end((err) => {
+    //   if (err) {
+    //     console.error('Error closing connection:', err);
+    //   } else {
+    //     console.log('Connection closed successfully.');
+    //   }
+    // });
+  });
+});
 
 // Helper functions
 const hashPassword = async (password) => {
@@ -180,6 +210,25 @@ app.get('/auth/google/callback',
       res.redirect(`${FRONTEND_URL}/dashboard`);
     }
   );
+
+  // In your Express backend
+app.get('/auth/status', (req, res) => {
+  if (req.isAuthenticated && req.isAuthenticated() || (req.session && req.session.user)) {
+    // Return user info without sensitive data
+    const user = req.user || req.session.user[0];
+    res.json({ 
+      authenticated: true, 
+      user: {
+        id: user.id,
+        name: user.displayName || user.name,
+        email: user.email,
+        // other non-sensitive user data
+      } 
+    });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
 // Existing routes
 app.post("/signup", async (req, res) => {
   try {

@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Button, Badge, Spinner, Alert } from 'react-
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { FiUsers, FiCalendar, FiDollarSign, FiArrowLeft, FiEdit } from 'react-icons/fi';
+import config from '../config';
 
 interface Project {
   id: number;
@@ -33,7 +34,7 @@ const ProjectDetail: React.FC = () => {
     const fetchProjectDetails = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`http://localhost:8081/api/projects/${id}`, {
+        const response = await axios.get(`${config.API_URL}/api/projects/${id}`, {
           withCredentials: true
         });
 

@@ -11,7 +11,7 @@ require('dotenv').config();
 
 // Constants
 const SALT_ROUNDS = 10;
-const PORT = 8081;
+const PORT =  process.env.PORT || 8081;
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 1000; // 24 hours in milliseconds
 
 // Google OAuth configuration
@@ -32,7 +32,7 @@ const app = express();
 
 // Middleware configuration
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   methods: ["GET", "POST", "DELETE"],
   credentials: true
 }));
@@ -159,10 +159,11 @@ app.get('/auth/google',
 );
 
 app.get('/auth/google/callback', 
-    passport.authenticate('google', { 
-      failureRedirect: 'http://localhost:5173/login'  // Redirect to login on failure
+    passport.authenticate('google', {    
+      failureRedirect: 'http://localhost:5173/login'  
     }),
     (req, res) => {
+      console.log("hi there");
       // Successful authentication
       // Store user in session for compatibility with existing code
       req.session.user = [req.user];

@@ -2,6 +2,7 @@ import  { useState, useEffect, JSX } from 'react';
 import { Container, Row, Col, Card, Button, Badge } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import config from '../config';
 
 interface Project {
   id: number;
@@ -29,7 +30,7 @@ function UserProjects(): JSX.Element {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await axios.get('http://localhost:8081/api/projects/user', {
+        const response = await axios.get('`${config.API_URL}`/api/projects/user', {
           withCredentials: true
         });
         

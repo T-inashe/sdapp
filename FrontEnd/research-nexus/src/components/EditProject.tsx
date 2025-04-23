@@ -2,6 +2,7 @@ import { useState, useEffect, FormEvent, ChangeEvent, JSX } from 'react';
 import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
+import config from '../config';
 
 interface ProjectFormData {
   title: string;
@@ -63,7 +64,7 @@ function EditProject(): JSX.Element {
     const fetchProjectData = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`http://localhost:8081/api/projects/${id}`, {
+        const response = await axios.get(`${config.API_URL}/api/projects/${id}`, {
           withCredentials: true
         });
         
@@ -129,7 +130,7 @@ function EditProject(): JSX.Element {
     setError('');
 
     try {
-      const response = await axios.put(`http://localhost:8081/api/projects/${id}/update`, formData, {
+      const response = await axios.put(`${config.API_URL}/api/projects/${id}/update`, formData, {
         withCredentials: true
       });
       

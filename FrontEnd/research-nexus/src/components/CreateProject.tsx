@@ -2,6 +2,7 @@ import  { useState, FormEvent, ChangeEvent, JSX } from 'react';
 import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import config from '../config';
 
 interface ProjectFormData {
   title: string;
@@ -81,7 +82,7 @@ function CreateProject(): JSX.Element {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:8081/api/projects/create', formData, {
+      const response = await axios.post(`${config.API_URL}/api/projects/create`, formData, {
         withCredentials: true
       });
       

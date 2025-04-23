@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AuthContext from './AuthContext';
+import config from '../config';
 
 interface User {
   id: string;
@@ -23,7 +24,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const response = await fetch('http://localhost:8081/UserData', {
+        const response = await fetch(`${config.API_URL}/UserData`, {
           credentials: 'include' // Important for cookies to be sent
         });
         
@@ -63,7 +64,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      await fetch('http://localhost:8081/logout', {
+      await fetch(`${config.API_URL}/logout`, {
         method: 'POST',
         credentials: 'include'
       });

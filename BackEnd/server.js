@@ -11,13 +11,17 @@ require('dotenv').config();
 
 // Constants
 const SALT_ROUNDS = 10;
-const PORT =  process.env.PORT || 8081;
+const PORT = process.env.PORT || 8081;
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 1000; // 24 hours in milliseconds
+
+// URLs - Environment variables with fallbacks for local development
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8081';
 
 // Google OAuth configuration
 const clientID = process.env.GOOGLE_CLIENT_ID;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_CALLBACK_URL = "http://localhost:8081/auth/google/callback";
+const GOOGLE_CALLBACK_URL = `${BACKEND_URL}/auth/google/callback`;
 
 // Database configuration
 const dbConfig = {
@@ -32,7 +36,7 @@ const app = express();
 
 // Middleware configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: FRONTEND_URL,
   methods: ["GET", "POST", "DELETE"],
   credentials: true
 }));
@@ -160,7 +164,7 @@ app.get('/auth/google',
 
 app.get('/auth/google/callback', 
     passport.authenticate('google', {    
-      failureRedirect: 'http://localhost:5173/login'  
+      failureRedirect: `${FRONTEND_URL}/login`  
     }),
     (req, res) => {
       console.log("hi there");
@@ -169,7 +173,7 @@ app.get('/auth/google/callback',
       req.session.user = [req.user];
       
       // Redirect to dashboard after successful login
-      res.redirect('http://localhost:5173/dashboard');
+      res.redirect(`${FRONTEND_URL}/dashboard`);
     }
   );
 // Existing routes

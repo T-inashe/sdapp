@@ -1,11 +1,26 @@
-import React, { useState } from 'react';
+import  { useState, FormEvent, ChangeEvent, JSX } from 'react';
 import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-function CreateProject() {
+interface ProjectFormData {
+  title: string;
+  description: string;
+  researchGoals: string;
+  researchArea: string;
+  startDate: string;
+  endDate: string;
+  fundingAvailable: boolean;
+  fundingAmount: string;
+  collaboratorsNeeded: boolean;
+  collaboratorRoles: string;
+  institution: string;
+  contactEmail: string;
+}
+
+function CreateProject(): JSX.Element {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProjectFormData>({
     title: '',
     description: '',
     researchGoals: '',
@@ -20,11 +35,11 @@ function CreateProject() {
     contactEmail: ''
   });
 
-  const [validated, setValidated] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [validated, setValidated] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
 
-  const researchAreas = [
+  const researchAreas: string[] = [
     'Artificial Intelligence',
     'Data Science',
     'Machine Learning',
@@ -42,15 +57,17 @@ function CreateProject() {
     'Other'
   ];
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    
     setFormData({
       ...formData,
       [name]: type === 'checkbox' ? checked : value
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
     

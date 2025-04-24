@@ -226,17 +226,36 @@ app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
+// In your Google OAuth callback endpoint
 app.get('/auth/google/callback', 
-  passport.authenticate('google', {    
-    failureRedirect: `${FRONTEND_URL}/login`  
-  }),
-  (req, res) => {
-    console.log("hi there");
-    req.session.user = [req.user];
-    
-    // Redirect to auth success page instead
-    res.redirect(`${FRONTEND_URL}/auth-success`);
-  }
+    passport.authenticate('google', {
+      failureRedirect: `${FRONTEND_URL}/login`
+    }),
+    (req, res) => {
+      console.log("Auth successful, setting session");
+      console.log("Session before:", req.session);
+      
+      req.session.user = [req.user];
+      
+      // Force session save before redirect
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error saving session:", err);
+          return res.redirect(`${FRONTEND_URL}/login`);
+        }
+        
+        console.log("Session saved successfully");
+        console.log("Session after:", req.session);
+        
+        // Set a simple cookie as a test
+        res.cookie('auth_test', 'true', { 
+          maxAge: 900000,
+          httpOnly: false
+        });
+        
+        res.redirect(`${FRONTEND_URL}/auth-success`);
+      });
+    }
 );
 
   // In your Express backend

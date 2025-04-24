@@ -73,49 +73,83 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Create a function to handle database connection and reconnection
-function connectToDb() {
-  const db = mysql.createConnection(dbConfig);
-
-  db.connect((err) => {
+// Create a better database connection pool with reconnection logic
+function createDbPool() {
+  const pool = mysql.createPool({
+    ...dbConfig,
+    connectionLimit: 10,
+    queueLimit: 0,
+    waitForConnections: true,
+    acquireTimeout: 30000,
+    connectTimeout: 30000
+  });
+  
+  // Test the connection
+  pool.getConnection((err, connection) => {
     if (err) {
-      console.error('Error connecting to the database:', err);
-      console.log('Retrying connection in 5 seconds...');
-      setTimeout(connectToDb, 5000);
+      console.error('Error connecting to database pool:', err);
+      if (err.code === 'PROTOCOL_CONNECTION_LOST' || 
+          err.code === 'ECONNREFUSED' || 
+          err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
+        console.log('Database connection issue. Server will continue and retry connections as needed.');
+      }
       return;
     }
     
-    console.log('Successfully connected to the database!');
+    console.log('Successfully connected to the database pool!');
+    // Release the connection back to the pool
+    connection.release();
     
     // Test query
-    db.query('SHOW TABLES', (err, results) => {
+    pool.query('SHOW TABLES', (err, results) => {
       if (err) {
-        console.error('Error executing query:', err);
+        console.error('Error executing test query:', err);
       } else {
         console.log('Tables in the database:');
         console.log(results);
       }
     });
   });
-
-  // Handle connection errors
-  db.on('error', (err) => {
-    console.error('Database error:', err);
-    if (err.code === 'PROTOCOL_CONNECTION_LOST' || 
-        err.code === 'ECONNRESET' ||
-        err.code === 'ETIMEDOUT') {
-      console.log('Lost connection to MySQL. Reconnecting...');
-      return connectToDb();
-    } else {
-      throw err;
-    }
-  });
-
-  return db;
+  
+  return pool;
 }
 
-// Database connection
-const db = connectToDb();
+// Use a pool instead of a single connection
+const db = createDbPool();
+
+// Add these helper functions for safer database operations
+function executeQuery(query, params = [], callback) {
+  db.getConnection((err, connection) => {
+    if (err) {
+      console.error('Error getting connection from pool:', err);
+      return callback(err);
+    }
+    
+    connection.query(query, params, (error, results) => {
+      // Always release the connection back to the pool
+      connection.release();
+      
+      if (error) {
+        console.error('Query error:', error, 'for query:', query);
+      }
+      
+      callback(error, results);
+    });
+  });
+}
+
+// Promise-based version for async/await usage
+function queryPromise(query, params = []) {
+  return new Promise((resolve, reject) => {
+    executeQuery(query, params, (error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+}
 
 // Helper functions
 const hashPassword = async (password) => {
@@ -132,7 +166,7 @@ passport.serializeUser((user, done) => {
 });
 
 passport.deserializeUser((email, done) => {
-  db.query(
+  executeQuery(
     "SELECT * FROM personalInfo WHERE email = ?",
     [email],
     (err, users) => {
@@ -158,7 +192,7 @@ passport.use(new GoogleStrategy({
       const email = profile.emails[0].value;
       
       // Check if user exists
-      db.query(
+      executeQuery(
         "SELECT * FROM personalInfo WHERE email = ?",
         [email],
         async (err, users) => {
@@ -170,21 +204,21 @@ passport.use(new GoogleStrategy({
             const surname = profile.name.familyName;
             
             // Insert into personalInfo with minimal data
-            db.query(
+            executeQuery(
               "INSERT INTO personalInfo (email, name, surname, password, oauth_provider) VALUES (?, ?, ?, ?, ?)",
               [email, name, surname, 'google-oauth-user', 'google'],
               (err) => {
                 if (err) return done(err);
                 
                 // Insert into schoolInfo
-                db.query(
+                executeQuery(
                   "INSERT INTO schoolInfo (email) VALUE (?)",
                   [email],
                   (err) => {
                     if (err) return done(err);
                     
                     // Get the newly created user
-                    db.query(
+                    executeQuery(
                       "SELECT * FROM personalInfo WHERE email = ?",
                       [email],
                       (err, newUsers) => {
@@ -237,37 +271,49 @@ app.get('/auth/google',
 
 // In your Google OAuth callback endpoint
 app.get('/auth/google/callback', 
-    passport.authenticate('google', {
-      failureRedirect: `${FRONTEND_URL}/login`
-    }),
-    (req, res) => {
-      console.log("Auth successful, setting session");
-      console.log("Session before:", req.session);
+  (req, res, next) => {
+    passport.authenticate('google', (err, user, info) => {
+      if (err) {
+        console.error("Error during Google authentication:", err);
+        return res.redirect(`${FRONTEND_URL}/login?error=server`);
+      }
       
-      req.session.user = [req.user];
+      if (!user) {
+        console.log("Authentication failed:", info);
+        return res.redirect(`${FRONTEND_URL}/login?error=auth`);
+      }
       
-      // Force session save before redirect
-      req.session.save((err) => {
+      req.logIn(user, (err) => {
         if (err) {
-          console.error("Error saving session:", err);
-          return res.redirect(`${FRONTEND_URL}/login`);
+          console.error("Login error:", err);
+          return res.redirect(`${FRONTEND_URL}/login?error=login`);
         }
         
-        console.log("Session saved successfully");
-        console.log("Session after:", req.session);
+        // Set session info
+        req.session.user = [user];
         
-        // Set a simple cookie as a test
-        res.cookie('auth_test', 'true', { 
-          maxAge: 900000,
-          httpOnly: false
+        req.session.save((err) => {
+          if (err) {
+            console.error("Session save error:", err);
+            return res.redirect(`${FRONTEND_URL}/login?error=session`);
+          }
+          
+          console.log("Session saved successfully");
+          console.log("Session after:", req.session);
+          
+          res.cookie('auth_test', 'true', { 
+            maxAge: 900000,
+            httpOnly: false
+          });
+          
+          res.redirect(`${FRONTEND_URL}/auth-success`);
         });
-        
-        res.redirect(`${FRONTEND_URL}/auth-success`);
       });
-    }
+    })(req, res, next);
+  }
 );
 
-  // In your Express backend
+// In your Express backend
 app.get('/auth/status', (req, res) => {
   if (req.isAuthenticated && req.isAuthenticated() || (req.session && req.session.user)) {
     // Return user info without sensitive data
@@ -300,6 +346,7 @@ app.get('/auth/check', (req, res) => {
     isAuthenticated: req.isAuthenticated && req.isAuthenticated()
   });
 });
+
 // Existing routes
 app.post("/signup", async (req, res) => {
   try {
@@ -307,13 +354,13 @@ app.post("/signup", async (req, res) => {
     const hash = await hashPassword(password);
 
     // Insert into personalInfo
-    db.query("INSERT INTO personalInfo (email, password, oauth_provider) VALUES (?, ?, ?)", 
+    executeQuery("INSERT INTO personalInfo (email, password, oauth_provider) VALUES (?, ?, ?)", 
       [email, hash, 'local'], 
       (err, data) => {
         if (err) return res.status(500).json("Error creating user");
         
         // Insert into schoolInfo
-        db.query("INSERT INTO schoolInfo (email) VALUE (?)",
+        executeQuery("INSERT INTO schoolInfo (email) VALUE (?)",
           [email],
           (err) => {
             if (err) return res.status(500).json("Error creating school info");
@@ -367,7 +414,7 @@ app.post("/MainContainer", async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    db.query(
+    executeQuery(
       "SELECT * FROM personalInfo WHERE email = ? AND oauth_provider = 'local'",
       [email],
       async (err, data) => {
@@ -430,7 +477,7 @@ app.post("/api/projects/create", checkAuth, (req, res) => {
   }
 
   // Insert into projects table
-  db.query(
+  executeQuery(
     `INSERT INTO projects (
       creator_email, 
       title, 
@@ -487,7 +534,7 @@ app.get("/api/projects/user", checkAuth, (req, res) => {
     return res.json({ success: false, message: "User not authenticated" });
   }
 
-  db.query(
+  executeQuery(
     "SELECT * FROM projects WHERE creator_email = ? ORDER BY created_at DESC",
     [userEmail],
     (err, results) => {
@@ -511,7 +558,7 @@ app.get("/api/projects/user", checkAuth, (req, res) => {
 app.get("/api/projects/:id", checkAuth, (req, res) => {
   const projectId = req.params.id;
   
-  db.query(
+  executeQuery(
     "SELECT * FROM projects WHERE id = ?",
     [projectId],
     (err, results) => {
@@ -553,7 +600,7 @@ app.get("/api/projects", checkAuth, (req, res) => {
   
   query += " ORDER BY created_at DESC";
   
-  db.query(query, params, (err, results) => {
+  executeQuery(query, params, (err, results) => {
     if (err) {
       console.error("Error fetching projects:", err);
       return res.json({ 
@@ -570,20 +617,38 @@ app.get("/api/projects", checkAuth, (req, res) => {
 });
 
 app.post('/logout', (req, res) => {
-    req.logout(function(err) {
-      if (err) { 
+  req.logout(function(err) {
+    if (err) { 
+      return res.status(500).json({ message: 'Could not log out, please try again' });
+    }
+    
+    req.session.destroy((err) => {
+      if (err) {
         return res.status(500).json({ message: 'Could not log out, please try again' });
       }
-      
-      req.session.destroy((err) => {
-        if (err) {
-          return res.status(500).json({ message: 'Could not log out, please try again' });
-        }
-        res.clearCookie('connect.sid');
-        return res.status(200).json({ message: 'Logged out successfully' });
-      });
+      res.clearCookie('connect.sid');
+      return res.status(200).json({ message: 'Logged out successfully' });
     });
   });
+});
+
+// Add a test-session endpoint for debugging
+app.get('/test-session', (req, res) => {
+  console.log("Session in test:", req.session);
+  
+  if (!req.session.testValue) {
+    req.session.testValue = Date.now();
+    console.log("Setting new test value:", req.session.testValue);
+  } else {
+    console.log("Existing test value:", req.session.testValue);
+  }
+  
+  res.json({ 
+    sessionExists: !!req.session,
+    testValue: req.session.testValue,
+    passportUser: req.user || null
+  });
+});
 
 // Global error handling middleware
 app.use((err, req, res, next) => {

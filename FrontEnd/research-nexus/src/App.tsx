@@ -11,6 +11,7 @@ import CreateProject from './components/CreateProject';
 import UserProjects from './components/UserProjects';
 import EditProject from './components/EditProject';
 import ProjectDetail from './components/ProjectDetails';
+import AuthSuccess from './Create AuthSuccess';
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -29,6 +30,7 @@ const App: React.FC = () => {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<ResearchCollabLanding />} />
+          <Route path="/auth-success" element={<AuthSuccess />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/projects/create" element={<CreateProject />} />

@@ -227,19 +227,17 @@ app.get('/auth/google',
 );
 
 app.get('/auth/google/callback', 
-    passport.authenticate('google', {    
-      failureRedirect: `${FRONTEND_URL}/login`  
-    }),
-    (req, res) => {
-      console.log("hi there");
-      // Successful authentication
-      // Store user in session for compatibility with existing code
-      req.session.user = [req.user];
-      
-      // Redirect to dashboard after successful login
-      res.redirect(`${FRONTEND_URL}/dashboard`);
-    }
-  );
+  passport.authenticate('google', {    
+    failureRedirect: `${FRONTEND_URL}/login`  
+  }),
+  (req, res) => {
+    console.log("hi there");
+    req.session.user = [req.user];
+    
+    // Redirect to auth success page instead
+    res.redirect(`${FRONTEND_URL}/auth-success`);
+  }
+);
 
   // In your Express backend
 app.get('/auth/status', (req, res) => {

@@ -59,19 +59,21 @@ app.use(cors({
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
+// In your server.js
 app.use(session({
   key: "email",
   secret: process.env.SESSION_SECRET || "changetosecureaftertesting",
-  resave: true, // Change to true
-  saveUninitialized: true, // Change to true
+  resave: true,
+  saveUninitialized: true,
   cookie: {
     expires: new Date(Date.now() + COOKIE_MAX_AGE),
     maxAge: COOKIE_MAX_AGE,
-    sameSite: 'lax', // Add this
-    secure: process.env.NODE_ENV === 'production' // Add this - true in production
-  }
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: process.env.NODE_ENV === 'production', // Must match your environment
+    httpOnly: true
+  },
+  rolling: true
 }));
-
 // Initialize passport
 app.use(passport.initialize());
 app.use(passport.session());
@@ -296,6 +298,7 @@ app.get('/auth/google',
 );
 
 // In your Google OAuth callback endpoint
+// In the Google OAuth callback handler on your server
 app.get('/auth/google/callback', 
   (req, res, next) => {
     passport.authenticate('google', (err, user, info) => {
@@ -318,26 +321,80 @@ app.get('/auth/google/callback',
         // Set session info
         req.session.user = [user];
         
-        req.session.save((err) => {
-          if (err) {
-            console.error("Session save error:", err);
-            return res.redirect(`${FRONTEND_URL}/login?error=session`);
-          }
-          
-          console.log("Session saved successfully");
-          console.log("Session after:", req.session);
-          
-          res.cookie('auth_test', 'true', { 
-            maxAge: 900000,
-            httpOnly: false
-          });
-          
-          res.redirect(`${FRONTEND_URL}/auth-success`);
-        });
+        // Generate a unique token
+        const authToken = require('crypto').randomBytes(32).toString('hex');
+        
+        // Store token in database or memory cache
+        // (Example using global variable - use proper storage in production)
+        global.authTokens = global.authTokens || {};
+        global.authTokens[authToken] = user.email;
+        
+        console.log("Setting auth token:", authToken, "for user:", user.email);
+        
+        // Redirect with token
+        res.redirect(`${FRONTEND_URL}/auth-success?token=${authToken}`);
       });
     })(req, res, next);
   }
 );
+
+// Add a new endpoint to fetch user data with token
+app.get('/auth/userdata-with-token', (req, res) => {
+  const token = req.query.token;
+  
+  if (!token || !global.authTokens || !global.authTokens[token]) {
+    return res.json({ loggedIn: false, message: "Invalid or expired token" });
+  }
+  
+  const userEmail = global.authTokens[token];
+  
+  executeQuery(
+    "SELECT * FROM personalInfo WHERE email = ?",
+    [userEmail],
+    (err, users) => {
+      if (err || !users.length) {
+        return res.json({ loggedIn: false, message: "User not found" });
+      }
+      
+      const user = users[0];
+      
+      // Set up the session properly
+      req.session.user = [user];
+      req.session.passport = { user: userEmail };
+      req.session.save(err => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.json({ loggedIn: false, message: "Session error" });
+        }
+        
+        // Return formatted user data
+        res.json({
+          loggedIn: true,
+          user: [{
+            id: user.id || '',
+            name: user.name || '',
+            email: user.email || '',
+            institution: user.institution || user.school || '',
+            avatar: user.avatar || '',
+          }]
+        });
+        
+        // Clean up the token
+        delete global.authTokens[token];
+      });
+    }
+  );
+});
+app.get('/debug-session', (req, res) => {
+  res.json({
+    sessionId: req.sessionID,
+    hasSession: !!req.session,
+    sessionContent: req.session,
+    cookies: req.cookies,
+    user: req.user,
+    passportSession: req.session.passport
+  });
+});
 
 // In your Express backend
 app.get('/auth/status', (req, res) => {

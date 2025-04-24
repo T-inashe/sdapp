@@ -1,6 +1,6 @@
-import { app } from '../app'; // Assuming the app instance is imported from the main file
+import { app } from '../app'; 
 import request from 'supertest';
-import { executeQuery } from '../db'; // Mock this function to simulate DB behavior
+import { executeQuery } from '../db'; 
 import jest from 'jest-mock';
 
 jest.mock('../db'); // Mock the DB module

@@ -52,9 +52,9 @@ const app = express();
 // Middleware configuration
 app.use(cors({
   origin: FRONTEND_URL,
-  methods: ["GET", "POST", "DELETE"],
+  methods: ["GET", "POST", "DELETE", "OPTIONS"], // Add OPTIONS for preflight
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization'] // Add this
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Cache-Control'] // Add Cache-Control here
 }));
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));

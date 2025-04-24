@@ -210,9 +210,18 @@ passport.use(new GoogleStrategy({
 
 // Authentication middleware
 const checkAuth = (req, res, next) => {
-  if (req.session.user || req.isAuthenticated()) {
+  console.log("checkAuth middleware running");
+  console.log("Session:", req.session);
+  console.log("req.isAuthenticated():", req.isAuthenticated());
+  
+  if (req.session && req.session.user) {
+    console.log("User found in session");
+    next();
+  } else if (req.isAuthenticated()) {
+    console.log("User authenticated via Passport");
     next();
   } else {
+    console.log("No authenticated user found");
     res.json({ loggedIn: false });
   }
 };
@@ -318,13 +327,20 @@ app.post("/signup", async (req, res) => {
 });
 
 // Update the UserData route to return data in the format expected by the frontend
-app.get("/UserData", checkAuth, (req, res) => {
+app.get("/UserData", (req, res) => {
+  console.log("UserData endpoint hit");
+  console.log("Session data:", req.session);
+  console.log("User in request:", req.user);
+  
   // Handle both passport and session authentication
   const userData = req.session.user || (req.user ? [req.user] : null);
   
   if (!userData) {
+    console.log("No user data found");
     return res.json({ loggedIn: false });
   }
+  
+  console.log("User data found:", userData);
   
   // Format user data for frontend
   const formattedUser = {
@@ -338,6 +354,7 @@ app.get("/UserData", checkAuth, (req, res) => {
     }))
   };
   
+  console.log("Formatted user:", formattedUser);
   res.json(formattedUser);
 });
 

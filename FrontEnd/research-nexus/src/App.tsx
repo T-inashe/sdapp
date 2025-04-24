@@ -11,7 +11,7 @@ import CreateProject from './components/CreateProject';
 import UserProjects from './components/UserProjects';
 import EditProject from './components/EditProject';
 import ProjectDetail from './components/ProjectDetails';
-import AuthSuccess from './Create AuthSuccess';
+import AuthSuccess from './components/auth/AuthSuccess';
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {

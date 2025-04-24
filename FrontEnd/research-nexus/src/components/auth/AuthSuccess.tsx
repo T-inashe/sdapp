@@ -1,10 +1,7 @@
-
-
-// Create AuthSuccess.tsx component
 import React, { useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AuthContext from './context/AuthContext';
-import config from './config';
+import AuthContext from '../../context/AuthContext';
+import config from '../../config';
 
 const AuthSuccess: React.FC = () => {
   const { login } = useContext(AuthContext);
@@ -12,16 +9,33 @@ const AuthSuccess: React.FC = () => {
 
   useEffect(() => {
     console.log("AuthSuccess component mounted");
+    
+    // Check if we have the test cookie
+    const hasAuthCookie = document.cookie.includes('auth_test=true');
+    console.log("Auth test cookie present:", hasAuthCookie);
+    
     const fetchUserData = async () => {
-        console.log("Fetching user data after authentication");
+      console.log("Fetching user data after authentication");
       try {
         const response = await fetch(`${config.API_URL}/UserData`, {
-          credentials: 'include'
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json'
+          }
         });
         
-        const data = await response.json();
+        console.log("Response status:", response.status);
         
-        if (data.loggedIn && data.user) {
+        if (!response.ok) {
+          console.error("Error response from server");
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("Received data:", data);
+        
+        if (data.loggedIn && data.user && data.user.length > 0) {
+          console.log("User is logged in, processing user data");
           // Transform backend user data
           const userData = {
             id: data.user[0].id || '',
@@ -31,13 +45,14 @@ const AuthSuccess: React.FC = () => {
             avatar: data.user[0].avatar || ''
           };
           
+          console.log("Processed user data:", userData);
           // Set the user in context
           login(userData);
           
           // Navigate to dashboard
           navigate('/dashboard');
         } else {
-          // If something went wrong, go back to login
+          console.error("Not logged in or no user data:", data);
           navigate('/login');
         }
       } catch (error) {
@@ -45,7 +60,7 @@ const AuthSuccess: React.FC = () => {
         navigate('/login');
       }
     };
-
+    
     fetchUserData();
   }, [login, navigate]);
 

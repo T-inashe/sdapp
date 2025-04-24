@@ -3,14 +3,11 @@ import { Link } from 'react-router-dom';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import { FcGoogle } from 'react-icons/fc';
 import './Auth.css';
-import config from '../../config';
-
 
 const Login: React.FC = () => {
   const handleGoogleLogin = () => {
     // Redirect to backend Google OAuth route
-    console.log(config.API_URL);
-    window.location.href = `${config.API_URL}/auth/google`;
+    window.location.href = 'http://localhost:8081/auth/google';
   };
 
   return (

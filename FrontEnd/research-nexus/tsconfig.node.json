@@ -1,13 +1,14 @@
 {
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "jsx": "react-jsx",
     "target": "ES2022",
     "lib": ["ES2023"],
-    "module": "ESNext",
+    "module": "CommonJS",                             // ✅ Needed for Jest configs
     "skipLibCheck": true,
 
-    /* Bundler mode */
-    "moduleResolution": "bundler",
+    /* Bundler mode — disable if Jest has issues */
+    "moduleResolution": "node",                       // ✅ More compatible with Node tools
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
@@ -18,7 +19,10 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+
+    /* ✅ Add types for Jest and Node */
+    "types": ["jest", "node"]
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts", "jest.config.ts"]
 }

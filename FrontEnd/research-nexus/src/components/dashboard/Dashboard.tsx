@@ -5,8 +5,6 @@ import AuthContext from '../../context/AuthContext';
 import { FiUsers, FiFileText, FiMessageSquare, FiCalendar, FiSettings, FiLogOut } from 'react-icons/fi';
 import axios from 'axios';
 import './Dashboard.css';
-import config from '../../config';
-
 
 interface Project {
   id: number;
@@ -47,14 +45,14 @@ const Dashboard: React.FC = () => {
       setIsLoading(true);
       try {
         // Fetch real projects from API
-        const projectResponse = await axios.get(`${config.API_URL}/api/projects/user`, {
+        const projectResponse = await axios.get('http://localhost:8081/api/projects/user', {
           withCredentials: true
         });
         
         if (projectResponse.data.success) {
           setProjects(projectResponse.data.projects);
         } else {
-          console.error('Failed to load projects:', projectResponse.data.message);
+          setError(`Failed to load projects: ${projectResponse.data.message}`);
         }
 
         // For now, still using mock notifications
@@ -91,11 +89,12 @@ const Dashboard: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post(`${config.API_URL}/logout`, {}, { withCredentials: true });
+      await axios.post('http://localhost:8081/logout', {}, { withCredentials: true });
       await logout();
       navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
+      setError('Logout failed. Please try again.');
     }
   };
 

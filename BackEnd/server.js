@@ -32,6 +32,20 @@ const dbConfig = {
   port: "3306",
 };
 
+// Global error handlers for production environment
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Application can continue running
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  // Give the server time to finish current requests before exiting
+  setTimeout(() => {
+    process.exit(1); // Process manager will restart the application
+  }, 1000);
+});
+
 // Express app setup
 const app = express();
 
@@ -46,7 +60,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(session({
   key: "email",
-  secret: "changetosecureaftertesting",
+  secret: process.env.SESSION_SECRET || "changetosecureaftertesting",
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -59,37 +73,49 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Database connection
-const db = mysql.createConnection(dbConfig);
+// Create a function to handle database connection and reconnection
+function connectToDb() {
+  const db = mysql.createConnection(dbConfig);
 
-// Connect to the database
-db.connect((err) => {
-  if (err) {
-    console.error('Error connecting to the database:', err);
-    return;
-  }
-  
-  console.log('Successfully connected to the database!');
-  
-  // Test query
-  db.query('SHOW TABLES', (err, results) => {
+  db.connect((err) => {
     if (err) {
-      console.error('Error executing query:', err);
-    } else {
-      console.log('Tables in the database:');
-      console.log(results);
+      console.error('Error connecting to the database:', err);
+      console.log('Retrying connection in 5 seconds...');
+      setTimeout(connectToDb, 5000);
+      return;
     }
     
-    // Close the db
-    // db.end((err) => {
-    //   if (err) {
-    //     console.error('Error closing connection:', err);
-    //   } else {
-    //     console.log('Connection closed successfully.');
-    //   }
-    // });
+    console.log('Successfully connected to the database!');
+    
+    // Test query
+    db.query('SHOW TABLES', (err, results) => {
+      if (err) {
+        console.error('Error executing query:', err);
+      } else {
+        console.log('Tables in the database:');
+        console.log(results);
+      }
+    });
   });
-});
+
+  // Handle connection errors
+  db.on('error', (err) => {
+    console.error('Database error:', err);
+    if (err.code === 'PROTOCOL_CONNECTION_LOST' || 
+        err.code === 'ECONNRESET' ||
+        err.code === 'ETIMEDOUT') {
+      console.log('Lost connection to MySQL. Reconnecting...');
+      return connectToDb();
+    } else {
+      throw err;
+    }
+  });
+
+  return db;
+}
+
+// Database connection
+const db = connectToDb();
 
 // Helper functions
 const hashPassword = async (password) => {
@@ -111,7 +137,11 @@ passport.deserializeUser((email, done) => {
     [email],
     (err, users) => {
       if (err) return done(err);
-      done(null, users[0]);
+      if (users && users.length > 0) {
+        done(null, users[0]);
+      } else {
+        done(null, false);
+      }
     }
   );
 });
@@ -228,6 +258,21 @@ app.get('/auth/status', (req, res) => {
   } else {
     res.json({ authenticated: false });
   }
+});
+
+// Add this to your server.js
+app.get('/auth/check', (req, res) => {
+  console.log('Session:', req.session);
+  console.log('User:', req.user);
+  console.log('Session user:', req.session.user);
+  console.log('Authenticated:', req.isAuthenticated && req.isAuthenticated());
+  
+  res.json({
+    sessionExists: !!req.session,
+    sessionUser: req.session.user ? true : false,
+    passportUser: req.user ? true : false,
+    isAuthenticated: req.isAuthenticated && req.isAuthenticated()
+  });
 });
 // Existing routes
 app.post("/signup", async (req, res) => {
@@ -506,7 +551,35 @@ app.post('/logout', (req, res) => {
     });
   });
 
+// Global error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Express error:', err);
+  res.status(500).send('Something went wrong with the server');
+});
+
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// Graceful shutdown
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
+
+function gracefulShutdown() {
+  console.log('Received kill signal, shutting down gracefully');
+  server.close(() => {
+    console.log('Closed out remaining connections');
+    // Close database connection
+    if (db) {
+      db.end();
+    }
+    process.exit(0);
+  });
+
+  // If server hasn't finished in 30 seconds, shut down forcefully
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 30000);
+}

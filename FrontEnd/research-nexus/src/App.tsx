@@ -13,15 +13,15 @@ import EditProject from './components/EditProject';
 import ProjectDetail from './components/ProjectDetails';
 
 // Protected route component
-// const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-//   const { isAuthenticated } = useContext(AuthContext);
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useContext(AuthContext);
   
-//   if (!isAuthenticated) {
-//     return <Navigate to="/ResearchCollabLanding" />;
-//   }
+  if (!isAuthenticated) {
+    return <Navigate to="/ResearchCollabLanding" />;
+  }
   
-//   return <>{children}</>;
-// };
+  return <>{children}</>;
+};
 
 const App: React.FC = () => {
   return (
@@ -37,9 +37,9 @@ const App: React.FC = () => {
           <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/projects/:id/edit" element={<EditProject />} />
           <Route path="/dashboard" element={
-            // <ProtectedRoute>
+            <ProtectedRoute>
               <Dashboard />
-            // </ProtectedRoute>
+            </ProtectedRoute>
           } />
 
         {/* Routes for viewing and editing specific projects */}

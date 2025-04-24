@@ -1,17 +1,17 @@
-// // ResearchCollabLanding.jsx
+// // ResearchBridgeLanding.jsx
 // import React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 // import image from '../assets/Hluma Nziweni.jpg'
 import { Navbar, Nav, Container, Button, Card, Row, Col } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 
-function ResearchCollabLanding() {
+function ResearchBridgeLanding() {
   return (
     <>
       {/* Fixed Navigation Bar */}
       <Navbar bg="dark" variant="dark" expand="lg" fixed="top">
         <Container>
-          <Navbar.Brand href="#home">ResearchCollab</Navbar.Brand>
+          <Navbar.Brand href="#home">ResearchBridge</Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="ms-auto">
@@ -194,7 +194,7 @@ function ResearchCollabLanding() {
                 <Card.Body className="p-4">
                   <div className="mb-3 text-warning">★★★★★</div>
                   <Card.Text className="mb-4">
-                    "ResearchCollab has transformed how our department manages multi-university projects. 
+                    "ResearchBridge has transformed how our department manages multi-university projects. 
                     The funding tracking feature alone has saved us countless hours of administrative work."
                   </Card.Text>
                   <div className="d-flex align-items-center">
@@ -261,7 +261,7 @@ function ResearchCollabLanding() {
         <Container>
           <Row>
             <Col md={4} className="mb-4 mb-md-0">
-              <h5>ResearchCollab</h5>
+              <h5>ResearchBridge</h5>
               <p className="mb-0">Connecting researchers worldwide to advance academic collaboration</p>
             </Col>
             <Col md={4} className="mb-4 mb-md-0">
@@ -275,14 +275,14 @@ function ResearchCollabLanding() {
             <Col md={4}>
               <h5>Contact</h5>
               <ul className="list-unstyled">
-                <li>support@researchcollab.com</li>
+                <li>support@ResearchBridge.com</li>
                 <li>+1 (555) 123-4567</li>
               </ul>
             </Col>
           </Row>
           <hr className="my-4" />
           <div className="text-center">
-            <p className="mb-0">&copy; {new Date().getFullYear()} ResearchCollab. All rights reserved.</p>
+            <p className="mb-0">&copy; {new Date().getFullYear()} ResearchBridge. All rights reserved.</p>
           </div>
         </Container>
       </footer>
@@ -290,4 +290,4 @@ function ResearchCollabLanding() {
   );
 }
 
-export default ResearchCollabLanding;
+export default ResearchBridgeLanding;

@@ -190,7 +190,7 @@ const Dashboard: React.FC = () => {
       {/* Sidebar */}
       <div className="dashboard-sidebar">
         <div className="sidebar-header">
-          <h3>ResearchCollab</h3>
+          <h3>ResearchBridge</h3>
         </div>
         <div className="user-profile text-center p-3">
           <div className="avatar-container mx-auto mb-2">
@@ -267,7 +267,7 @@ const Dashboard: React.FC = () => {
                       <Col md={8}>
                         <h3>Welcome back, {user?.name?.split(' ')[0]}!</h3>
                         <p>
-                          Continue your research journey with ResearchCollab. You have{' '}
+                          Continue your research journey with ResearchBridge. You have{' '}
                           <strong>{notifications.length} notifications</strong> and{' '}
                           <strong>{projects.length} active projects</strong>.
                         </p>

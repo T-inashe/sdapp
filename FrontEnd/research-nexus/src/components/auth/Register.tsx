@@ -17,13 +17,13 @@ const Register: React.FC = () => {
         <Row className="justify-content-center align-items-center min-vh-100">
           <Col md={6} lg={5}>
             <div className="text-center mb-4">
-              <h1 className="brand-name">ResearchCollab</h1>
+              <h1 className="brand-name">ResearchBridge</h1>
               <p className="brand-tagline">Connect. Collaborate. Innovate.</p>
             </div>
             
             <Card className="shadow auth-card">
               <Card.Body className="p-4">
-                <h2 className="text-center mb-4">Join ResearchCollab</h2>
+                <h2 className="text-center mb-4">Join ResearchBridge</h2>
                 <p className="text-center text-muted mb-4">
                   Create an account to start collaborating with researchers worldwide
                 </p>

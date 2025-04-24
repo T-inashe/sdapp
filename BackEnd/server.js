@@ -53,7 +53,8 @@ const app = express();
 app.use(cors({
   origin: FRONTEND_URL,
   methods: ["GET", "POST", "DELETE"],
-  credentials: true
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization'] // Add this
 }));
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -61,11 +62,13 @@ app.use(express.json());
 app.use(session({
   key: "email",
   secret: process.env.SESSION_SECRET || "changetosecureaftertesting",
-  resave: false,
-  saveUninitialized: false,
+  resave: true, // Change to true
+  saveUninitialized: true, // Change to true
   cookie: {
     expires: new Date(Date.now() + COOKIE_MAX_AGE),
     maxAge: COOKIE_MAX_AGE,
+    sameSite: 'lax', // Add this
+    secure: process.env.NODE_ENV === 'production' // Add this - true in production
   }
 }));
 
@@ -162,18 +165,25 @@ const comparePassword = async (password, hash) => {
 
 // Passport configuration
 passport.serializeUser((user, done) => {
+  console.log("Serializing user:", user.email);
   done(null, user.email);
 });
 
 passport.deserializeUser((email, done) => {
+  console.log("Deserializing user:", email);
   executeQuery(
     "SELECT * FROM personalInfo WHERE email = ?",
     [email],
     (err, users) => {
-      if (err) return done(err);
+      if (err) {
+        console.error("Deserialize error:", err);
+        return done(err);
+      }
       if (users && users.length > 0) {
+        console.log("User found during deserialization");
         done(null, users[0]);
       } else {
+        console.log("No user found during deserialization");
         done(null, false);
       }
     }
@@ -245,15 +255,31 @@ passport.use(new GoogleStrategy({
 // Authentication middleware
 const checkAuth = (req, res, next) => {
   console.log("checkAuth middleware running");
-  console.log("Session:", req.session);
-  console.log("req.isAuthenticated():", req.isAuthenticated());
   
-  if (req.session && req.session.user) {
-    console.log("User found in session");
-    next();
-  } else if (req.isAuthenticated()) {
+  // Check both Passport and session authentication format
+  if (req.isAuthenticated && req.isAuthenticated()) {
     console.log("User authenticated via Passport");
     next();
+  } else if (req.session && req.session.user) {
+    console.log("User found in session");
+    next();
+  } else if (req.session && req.session.passport && req.session.passport.user) {
+    // Add this check for passport serialized format
+    console.log("User found in passport session");
+    // Fetch the user data to populate req.user
+    executeQuery(
+      "SELECT * FROM personalInfo WHERE email = ?",
+      [req.session.passport.user],
+      (err, users) => {
+        if (err || !users.length) {
+          console.log("Failed to fetch user from passport session");
+          res.json({ loggedIn: false });
+          return;
+        }
+        req.user = users[0];
+        next();
+      }
+    );
   } else {
     console.log("No authenticated user found");
     res.json({ loggedIn: false });
@@ -373,36 +399,71 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-// Update the UserData route to return data in the format expected by the frontend
 app.get("/UserData", (req, res) => {
   console.log("UserData endpoint hit");
   console.log("Session data:", req.session);
   console.log("User in request:", req.user);
+  console.log("Passport in session:", req.session.passport);
   
-  // Handle both passport and session authentication
-  const userData = req.session.user || (req.user ? [req.user] : null);
-  
-  if (!userData) {
-    console.log("No user data found");
-    return res.json({ loggedIn: false });
+  // First try passport-based auth
+  if (req.isAuthenticated && req.isAuthenticated() && req.user) {
+    console.log("Using passport user:", req.user);
+    return res.json({
+      loggedIn: true,
+      user: [{
+        id: req.user.id || '',
+        name: req.user.name || '',
+        email: req.user.email || '',
+        institution: req.user.institution || req.user.school || '',
+        avatar: req.user.avatar || '',
+      }]
+    });
   }
   
-  console.log("User data found:", userData);
+  // Then try session-based auth
+  if (req.session && req.session.user) {
+    console.log("Using session user:", req.session.user);
+    return res.json({
+      loggedIn: true, 
+      user: req.session.user.map(user => ({
+        id: user.id || '',
+        name: user.name || '',
+        email: user.email || '',
+        institution: user.institution || user.school || '',
+        avatar: user.avatar || '',
+      }))
+    });
+  }
   
-  // Format user data for frontend
-  const formattedUser = {
-    loggedIn: true,
-    user: userData.map(user => ({
-      id: user.id || '',
-      name: user.name || '',
-      email: user.email || '',
-      institution: user.institution || user.school || '',  // Adapt based on your database fields
-      avatar: user.avatar || '',
-    }))
-  };
+  // Finally try passport session directly
+  if (req.session && req.session.passport && req.session.passport.user) {
+    console.log("Found passport session, fetching user data");
+    return executeQuery(
+      "SELECT * FROM personalInfo WHERE email = ?",
+      [req.session.passport.user],
+      (err, users) => {
+        if (err || !users.length) {
+          console.log("Failed to fetch user from passport session");
+          return res.json({ loggedIn: false });
+        }
+        
+        const user = users[0];
+        return res.json({
+          loggedIn: true,
+          user: [{
+            id: user.id || '',
+            name: user.name || '',
+            email: user.email || '',
+            institution: user.institution || user.school || '',
+            avatar: user.avatar || '',
+          }]
+        });
+      }
+    );
+  }
   
-  console.log("Formatted user:", formattedUser);
-  res.json(formattedUser);
+  console.log("No user data found");
+  return res.json({ loggedIn: false });
 });
 
 app.get("/MainContainer", checkAuth, (req, res) => {

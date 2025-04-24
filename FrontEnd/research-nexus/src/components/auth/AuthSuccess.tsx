@@ -37,82 +37,93 @@ const AuthSuccess: React.FC = () => {
     }
     
     console.log("AuthSuccess component mounted");
-    // Check if we have the test cookie
-    const hasAuthCookie = document.cookie.includes('auth_test=true');
-    console.log("Auth test cookie present:", hasAuthCookie);
     
     const fetchUserData = async () => {
       console.log("Fetching user data after authentication");
       
-      try {
-        // Add a retry mechanism
-        let attempts = 0;
-        let maxAttempts = 3;
-        let success = false;
+      // Add a retry mechanism
+      let attempts = 0;
+      let maxAttempts = 5; // Increased from 3
+      let success = false;
+      
+      while (attempts < maxAttempts && !success) {
+        attempts++;
+        console.log(`Attempt ${attempts} to fetch user data`);
         
-        while (attempts < maxAttempts && !success) {
-          attempts++;
-          console.log(`Attempt ${attempts} to fetch user data`);
+        try {
+          // First check authentication status
+          const authCheck = await fetch(`${config.API_URL}/auth/check`, {
+            credentials: 'include',
+            headers: {
+              'Accept': 'application/json',
+              'Cache-Control': 'no-cache'
+            }
+          });
           
-          try {
-            const response = await fetch(`${config.API_URL}/UserData`, {
-              credentials: 'include',
-              headers: {
-                'Accept': 'application/json'
-              }
-            });
-            
-            console.log("Response status:", response.status);
-            
-            if (!response.ok) {
-              console.error(`Error response from server: ${response.status}`);
-              throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            console.log("Received data:", data);
-            
-            if (data.loggedIn && data.user && data.user.length > 0) {
-              // Transform backend user data
-              const userData = {
-                id: data.user[0].id || '',
-                name: data.user[0].name || '',
-                email: data.user[0].email || '',
-                institution: data.user[0].institution || data.user[0].school || '',
-                avatar: data.user[0].avatar || ''
-              };
-              
-              console.log("Processed user data:", userData);
-              // Set the user in context
-              login(userData);
-              success = true;
-              
-              // Navigate to dashboard
-              navigate('/dashboard');
-              return;
-            } else {
-              console.log("User not logged in or no user data");
-              if (attempts >= maxAttempts) {
-                setError("Unable to retrieve user data. Please try logging in again.");
-                setLoading(false);
-                setTimeout(() => navigate('/login'), 3000);
-              }
-            }
-          } catch (error) {
-            console.error(`Attempt ${attempts} failed:`, error);
-            if (attempts >= maxAttempts) {
-              setError("Error connecting to server. Please try again later.");
-              setLoading(false);
-              setTimeout(() => navigate('/login'), 3000);
-            } else {
-              // Wait before retrying
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            }
+          const authStatus = await authCheck.json();
+          console.log("Auth check status:", authStatus);
+          
+          // If not authenticated yet, wait and retry
+          if (!authStatus.sessionExists || 
+              (!authStatus.sessionUser && !authStatus.passportUser && !authStatus.isAuthenticated)) {
+            console.log("Not authenticated yet, waiting before retry");
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
           }
+          
+          // Now fetch user data
+          const response = await fetch(`${config.API_URL}/UserData`, {
+            credentials: 'include',
+            headers: {
+              'Accept': 'application/json',
+              'Cache-Control': 'no-cache'
+            }
+          });
+          
+          console.log("Response status:", response.status);
+          
+          if (!response.ok) {
+            console.error(`Error response from server: ${response.status}`);
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          console.log("Received data:", data);
+          
+          if (data.loggedIn && data.user && data.user.length > 0) {
+            // Transform backend user data
+            const userData = {
+              id: data.user[0].id || '',
+              name: data.user[0].name || '',
+              email: data.user[0].email || '',
+              institution: data.user[0].institution || data.user[0].school || '',
+              avatar: data.user[0].avatar || ''
+            };
+            
+            console.log("Processed user data:", userData);
+            // Set the user in context
+            login(userData);
+            success = true;
+            
+            // Navigate to dashboard
+            navigate('/dashboard');
+            return;
+          } else {
+            console.log("User not logged in or no user data");
+            // Wait a bit longer between later attempts
+            const waitTime = Math.min(1000 * attempts, 3000);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+          }
+        } catch (error) {
+          console.error(`Attempt ${attempts} failed:`, error);
+          // Wait a bit longer between later attempts
+          const waitTime = Math.min(1000 * attempts, 3000);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
         }
-      } catch (error) {
-        console.error('Failed to fetch user data after auth:', error);
-        setError("Authentication error, please try again");
+      }
+      
+      if (!success) {
+        setError("Unable to retrieve user data. Please try logging in again.");
         setLoading(false);
         setTimeout(() => navigate('/login'), 3000);
       }

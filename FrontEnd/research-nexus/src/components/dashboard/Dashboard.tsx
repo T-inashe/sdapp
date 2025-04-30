@@ -6,6 +6,7 @@ import { FiUsers, FiFileText, FiMessageSquare, FiCalendar, FiSettings, FiLogOut 
 import axios from 'axios';
 import './Dashboard.css';
 import config from '../../config';
+import Calendar from './Calendar'; // Import the Calendar component
 
 
 interface Project {
@@ -190,7 +191,7 @@ const Dashboard: React.FC = () => {
       {/* Sidebar */}
       <div className="dashboard-sidebar">
         <div className="sidebar-header">
-          <h3>ResearchCollab</h3>
+          <h3>ResearchBridge</h3>
         </div>
         <div className="user-profile text-center p-3">
           <div className="avatar-container mx-auto mb-2">
@@ -267,7 +268,7 @@ const Dashboard: React.FC = () => {
                       <Col md={8}>
                         <h3>Welcome back, {user?.name?.split(' ')[0]}!</h3>
                         <p>
-                          Continue your research journey with ResearchCollab. You have{' '}
+                          Continue your research journey with ResearchBridge. You have{' '}
                           <strong>{notifications.length} notifications</strong> and{' '}
                           <strong>{projects.length} active projects</strong>.
                         </p>
@@ -420,7 +421,66 @@ const Dashboard: React.FC = () => {
           </Container>
         )}
 
-        {activeTab !== 'overview' && (
+        {activeTab === 'calendar' && (
+          <Container fluid>
+            <Row className="mb-4">
+              <Col>
+                <h4 className="mb-3">Research Project Calendar</h4>
+                <p className="text-muted">
+                  View all your research projects with their start and end dates. Easily keep track of important milestones.
+                </p>
+              </Col>
+            </Row>
+            <Row>
+              <Col>
+                <Calendar projects={projects} />
+              </Col>
+            </Row>
+            <Row className="mt-4">
+              <Col md={6}>
+                <Card>
+                  <Card.Body>
+                    <h5>Upcoming Deadlines</h5>
+                    <div className="calendar-deadlines">
+                      {upcomingDeadlines.map(project => {
+                        const date = formatDeadlineDate(project.end_date);
+                        const isPastDeadline = new Date(project.end_date) < new Date();
+                        
+                        return (
+                          <div className="deadline-item" key={project.id}>
+                            <div className={`deadline-date ${isPastDeadline ? 'text-muted' : ''}`}>
+                              <span className="day">{date.day}</span>
+                              <span className="month">{date.month}</span>
+                            </div>
+                            <div className="deadline-info">
+                              <h6>{project.title}</h6>
+                              <p className="mb-0 text-muted small">
+                                {isPastDeadline ? 'Completed' : project.institution || project.research_area}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col md={6}>
+                <Card>
+                  <Card.Body>
+                    <h5>Project Timeline</h5>
+                    <p className="text-muted">View your project timeline and manage deadlines effectively.</p>
+                    <Button variant="primary" onClick={() => navigate('/projects')}>
+                      Manage Projects
+                    </Button>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          </Container>
+        )}
+
+        {activeTab !== 'overview' && activeTab !== 'calendar' && (
           <div className="text-center py-5">
             <h3>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h3>
             <p className="text-muted">This section is under development.</p>

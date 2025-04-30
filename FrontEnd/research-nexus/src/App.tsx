@@ -11,7 +11,11 @@ import CreateProject from './components/CreateProject';
 import UserProjects from './components/UserProjects';
 import EditProject from './components/EditProject';
 import ProjectDetail from './components/ProjectDetails';
+<<<<<<< Updated upstream
 import AuthSuccess from './components/auth/AuthSuccess';
+=======
+import CollaboratorDashboard from './components/dashboard/CollaboratorDashboard';
+>>>>>>> Stashed changes
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -38,6 +42,7 @@ const App: React.FC = () => {
           {/* Routes for viewing and editing specific projects */}
           <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/projects/:id/edit" element={<EditProject />} />
+          <Route path='/collaboratordashboard' element={<CollaboratorDashboard />} />
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
@@ -45,8 +50,8 @@ const App: React.FC = () => {
           } />
 
         {/* Routes for viewing and editing specific projects */}
-        {/* <Route path="/projects/:id" element={<ProjectDetails />} />
-        <Route path="/projects/:id/edit" element={<EditProject />} /> */}
+        <Route path="/projects/:id" element={<ProjectDetail />} />
+        <Route path="/projects/:id/edit" element={<EditProject />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </AuthProvider>

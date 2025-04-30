@@ -1,4 +1,0 @@
-{
-    "appService.defaultWebAppToDeploy": "undefined/subscriptions/221bf525-f4f4-4940-9168-b3e5ce7b5576/resourceGroups/appsvc_linux_southafricanorth/providers/Microsoft.Web/sites/sdapp",
-    "appService.deploySubpath": "BackEnd"
-}

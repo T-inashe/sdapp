@@ -6,7 +6,7 @@ import { FiUsers, FiCalendar, FiDollarSign, FiArrowLeft, FiEdit } from 'react-ic
 import config from '../config';
 
 interface Project {
-  id: number;
+  _id: number;
   creator_email: string;
   title: string;
   description: string;
@@ -34,12 +34,12 @@ const ProjectDetail: React.FC = () => {
     const fetchProjectDetails = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`${config.API_URL}/api/projects/${id}`, {
+        const response = await axios.get(`${config.API_URL}/api/createproject/projects/${id}`, {
           withCredentials: true
         });
 
-        if (response.data.success) {
-          setProject(response.data.project);
+        if (response.data) {
+          setProject(response.data);
         } else {
           setError(response.data.message || 'Failed to load project details');
         }
@@ -78,7 +78,7 @@ const ProjectDetail: React.FC = () => {
         <Alert variant="danger">
           {error || 'Project not found'}
         </Alert>
-        <Button variant="primary" onClick={() => navigate('/dashboard')}>
+        <Button variant="primary" onClick={() => navigate('/collaboratordashboard')}>
           <FiArrowLeft className="me-2" /> Back to Dashboard
         </Button>
       </Container>
@@ -88,7 +88,7 @@ const ProjectDetail: React.FC = () => {
   return (
     <Container className="py-5">
       <div className="mb-4 d-flex justify-content-between align-items-center">
-        <Button variant="link" className="text-decoration-none p-0" onClick={() => navigate('/dashboard')}>
+        <Button variant="link" className="text-decoration-none p-0" onClick={() => navigate('/collaboratordashboard')}>
           <FiArrowLeft className="me-2" /> Back to Dashboard
         </Button>
         <Link to={`/projects/${id}/edit`}>
@@ -176,7 +176,7 @@ const ProjectDetail: React.FC = () => {
           <hr className="my-4" />
 
           <div className="d-flex justify-content-between">
-            <Button variant="outline-secondary" onClick={() => navigate('/dashboard')}>
+            <Button variant="outline-secondary" onClick={() => navigate('/collaboratordashboard')}>
               <FiArrowLeft className="me-2" /> Back to Dashboard
             </Button>
             <Link to={`/projects/${id}/edit`}>

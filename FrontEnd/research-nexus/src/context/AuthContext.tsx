@@ -4,6 +4,7 @@ interface User {
   id: string;
   name: string;
   email: string;
+  role?:string;
   institution?: string;
   avatar?: string;
 }
@@ -11,15 +12,15 @@ interface User {
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (userData: User) => void;
+  login: (userData: User, token: string) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   user: null,
-  login: () => {},
-  logout: () => {},
+  login: () => {}, // dummy default
+  logout: () => {}, // dummy default
 });
 
 export default AuthContext;

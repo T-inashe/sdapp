@@ -10,7 +10,9 @@ import './App.css';
 import CreateProject from './components/CreateProject';
 import UserProjects from './components/UserProjects';
 import EditProject from './components/EditProject';
+import Signup from './components/auth/SignUp';
 import ProjectDetail from './components/ProjectDetails';
+import CollaboratorDashboard from './components/dashboard/CollaboratorDashboard';
 
 // Protected route component
 // const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -30,7 +32,9 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<ResearchCollabLanding />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/collaboratordashboard" element={<CollaboratorDashboard />} />
           <Route path="/projects/create" element={<CreateProject />} />
           <Route path="/projects" element={<UserProjects />} />
           {/* Routes for viewing and editing specific projects */}

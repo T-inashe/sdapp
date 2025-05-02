@@ -24,12 +24,12 @@ const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_CALLBACK_URL = `${BACKEND_URL}/auth/google/callback`;
 
 // Database configuration
+// Database configuration
 const dbConfig = {
-  host: "sql7.freesqldatabase.com",
-  user: "sql7775008",
-  password: "85VfWdsNTQ",
-  database: "sql7775008",
-  port: "3306",
+  host: "localhost",
+  user: "root",
+  password: "",
+  database: "fundme",
 };
 
 // Express app setup
@@ -207,7 +207,7 @@ app.get('/auth/google/callback',
       req.session.user = [req.user];
       
       // Redirect to dashboard after successful login
-      res.redirect(`${FRONTEND_URL}/dashboard`);
+      res.redirect(`${FRONTEND_URL}/collaboratordashboard`);
     }
   );
 
@@ -505,6 +505,479 @@ app.post('/logout', (req, res) => {
       });
     });
   });
+// Get collaborations for the current user
+app.get("/api/collaborations", checkAuth, (req, res) => {
+  const userEmail = req.user ? req.user.email : req.session.user[0].email;
+  
+  if (!userEmail) {
+    return res.json({ success: false, message: "User not authenticated" });
+  }
+
+  // Query projects where the user is a collaborator
+  db.query(
+    `SELECT p.*, c.role, c.status 
+     FROM projects p 
+     JOIN collaborators c ON p.id = c.project_id 
+     WHERE c.collaborator_email = ?
+     ORDER BY p.created_at DESC`,
+    [userEmail],
+    (err, results) => {
+      if (err) {
+        console.error("Error fetching collaborations:", err);
+        return res.json({ 
+          success: false, 
+          message: "Error fetching collaborations"
+        });
+      }
+      
+      return res.json({ 
+        success: true, 
+        projects: results
+      });
+    }
+  );
+});
+
+// Get matching opportunities for the current user
+app.get("/api/opportunities", checkAuth, (req, res) => {
+  const userEmail = req.user ? req.user.email : req.session.user[0].email;
+  
+  if (!userEmail) {
+    return res.json({ success: false, message: "User not authenticated" });
+  }
+
+  // Optional query parameters for filtering
+  const { area, institution, matchThreshold } = req.query;
+  
+  // First, get user's skills
+  db.query(
+    `SELECT research_areas, technical_skills 
+     FROM researcher_skills 
+     WHERE email = ?`,
+    [userEmail],
+    (err, userSkills) => {
+      if (err) {
+        console.error("Error fetching user skills:", err);
+        return res.json({ 
+          success: false, 
+          message: "Error fetching user skills"
+        });
+      }
+      
+      // Build filter conditions for the query
+      let conditions = [];
+      let params = [];
+      
+      if (area) {
+        conditions.push("p.research_area = ?");
+        params.push(area);
+      }
+      
+      if (institution) {
+        conditions.push("p.institution = ?");
+        params.push(institution);
+      }
+      
+      // Filter projects where user is not already a collaborator
+      const whereClause = conditions.length > 0 
+        ? `WHERE ${conditions.join(" AND ")} AND p.id NOT IN (SELECT project_id FROM collaborators WHERE collaborator_email = ?)`
+        : `WHERE p.id NOT IN (SELECT project_id FROM collaborators WHERE collaborator_email = ?)`;
+      
+      params.push(userEmail);
+      
+      // Query projects with potential opportunities
+      db.query(
+        `SELECT p.*, 
+          p.creator_email != ? AS is_opportunity,
+          DATE_FORMAT(p.created_at, '%Y-%m-%d') AS formatted_date
+         FROM projects p
+         ${whereClause}
+         AND p.collaborators_needed = true
+         ORDER BY p.created_at DESC`,
+        params,
+        (err, results) => {
+          if (err) {
+            console.error("Error fetching opportunities:", err);
+            return res.json({ 
+              success: false, 
+              message: "Error fetching opportunities"
+            });
+          }
+          
+          // If we have user skills, calculate match scores
+          if (userSkills && userSkills.length > 0) {
+            const userAreas = JSON.parse(userSkills[0].research_areas || '[]');
+            const userTechSkills = JSON.parse(userSkills[0].technical_skills || '[]');
+            
+            // Calculate match score for each opportunity
+            results = results.map(opportunity => {
+              let matchScore = 0;
+              let totalFactors = 0;
+              
+              // Match research area
+              if (userAreas.includes(opportunity.research_area)) {
+                matchScore += 50;
+                totalFactors += 1;
+              }
+              
+              // Match technical skills against required roles
+              if (opportunity.collaborator_roles && userTechSkills.length > 0) {
+                const requiredRoles = opportunity.collaborator_roles.split(',').map(role => role.trim().toLowerCase());
+                const matchingSkills = userTechSkills.filter(skill => 
+                  requiredRoles.some(role => role.includes(skill.toLowerCase()))
+                );
+                
+                if (matchingSkills.length > 0) {
+                  matchScore += Math.min(50, (matchingSkills.length / requiredRoles.length) * 50);
+                  totalFactors += 1;
+                }
+              }
+              
+              // Calculate final score (default to 0 if no factors matched)
+              const finalScore = totalFactors > 0 ? Math.round(matchScore / totalFactors) : 0;
+              
+              return {
+                ...opportunity,
+                matchScore: finalScore,
+                skills_needed: opportunity.collaborator_roles ? 
+                  opportunity.collaborator_roles.split(',').map(role => role.trim()) : []
+              };
+            });
+            
+            // Filter by match threshold if specified
+            if (matchThreshold) {
+              results = results.filter(opp => opp.matchScore >= parseInt(matchThreshold));
+            }
+            
+            // Sort by match score (highest first)
+            results.sort((a, b) => b.matchScore - a.matchScore);
+          }
+          
+          return res.json({ 
+            success: true, 
+            opportunities: results
+          });
+        }
+      );
+    }
+  );
+});
+
+// Apply to a project/opportunity
+app.post("/api/opportunities/:id/apply", checkAuth, (req, res) => {
+  const projectId = req.params.id;
+  const userEmail = req.user ? req.user.email : req.session.user[0].email;
+  const { message, role } = req.body;
+  
+  if (!userEmail) {
+    return res.json({ success: false, message: "User not authenticated" });
+  }
+  
+  // Check if project exists
+  db.query(
+    "SELECT * FROM projects WHERE id = ?",
+    [projectId],
+    (err, projects) => {
+      if (err) {
+        console.error("Error checking project:", err);
+        return res.json({ 
+          success: false, 
+          message: "Error processing application"
+        });
+      }
+      
+      if (projects.length === 0) {
+        return res.json({
+          success: false,
+          message: "Project not found"
+        });
+      }
+      
+      // Check if user already applied
+      db.query(
+        "SELECT * FROM applications WHERE project_id = ? AND applicant_email = ?",
+        [projectId, userEmail],
+        (err, applications) => {
+          if (err) {
+            console.error("Error checking existing applications:", err);
+            return res.json({ 
+              success: false, 
+              message: "Error processing application"
+            });
+          }
+          
+          if (applications.length > 0) {
+            return res.json({
+              success: false,
+              message: "You have already applied to this project"
+            });
+          }
+          
+          // Insert application
+          db.query(
+            `INSERT INTO applications 
+             (project_id, applicant_email, message, requested_role, status, created_at)
+             VALUES (?, ?, ?, ?, 'pending', NOW())`,
+            [projectId, userEmail, message || '', role || 'Collaborator'],
+            (err, result) => {
+              if (err) {
+                console.error("Error creating application:", err);
+                return res.json({ 
+                  success: false, 
+                  message: "Error submitting application"
+                });
+              }
+              
+              // Also insert notification for project creator
+              db.query(
+                `INSERT INTO notifications 
+                 (user_email, message, type, related_id, created_at)
+                 VALUES (?, ?, 'application', ?, NOW())`,
+                [projects[0].creator_email, 
+                 `New application from ${userEmail} for "${projects[0].title}"`, 
+                 result.insertId],
+                (err) => {
+                  if (err) {
+                    console.error("Error creating notification:", err);
+                  }
+                }
+              );
+              
+              return res.json({ 
+                success: true, 
+                message: "Application submitted successfully",
+                applicationId: result.insertId
+              });
+            }
+          );
+        }
+      );
+    }
+  );
+});
+
+// Get user's applications
+app.get("/api/applications", checkAuth, (req, res) => {
+  const userEmail = req.user ? req.user.email : req.session.user[0].email;
+  
+  if (!userEmail) {
+    return res.json({ success: false, message: "User not authenticated" });
+  }
+
+  db.query(
+    `SELECT a.*, p.title as project_title, p.research_area, p.institution
+     FROM applications a
+     JOIN projects p ON a.project_id = p.id
+     WHERE a.applicant_email = ?
+     ORDER BY a.created_at DESC`,
+    [userEmail],
+    (err, results) => {
+      if (err) {
+        console.error("Error fetching applications:", err);
+        return res.json({ 
+          success: false, 
+          message: "Error fetching applications"
+        });
+      }
+      
+      return res.json({ 
+        success: true, 
+        applications: results
+      });
+    }
+  );
+});
+
+// Get user's notifications
+app.get("/api/notifications", checkAuth, (req, res) => {
+  const userEmail = req.user ? req.user.email : req.session.user[0].email;
+  
+  if (!userEmail) {
+    return res.json({ success: false, message: "User not authenticated" });
+  }
+
+  db.query(
+    `SELECT * FROM notifications
+     WHERE user_email = ?
+     ORDER BY created_at DESC
+     LIMIT 10`,
+    [userEmail],
+    (err, results) => {
+      if (err) {
+        console.error("Error fetching notifications:", err);
+        return res.json({ 
+          success: false, 
+          message: "Error fetching notifications"
+        });
+      }
+      
+      return res.json({ 
+        success: true, 
+        notifications: results
+      });
+    }
+  );
+});
+
+// Get user's skills profile
+app.get("/api/skills", checkAuth, (req, res) => {
+  const userEmail = req.user ? req.user.email : req.session.user[0].email;
+  
+  if (!userEmail) {
+    return res.json({ success: false, message: "User not authenticated" });
+  }
+
+  db.query(
+    `SELECT * FROM researcher_skills
+     WHERE email = ?`,
+    [userEmail],
+    (err, results) => {
+      if (err) {
+        console.error("Error fetching skills:", err);
+        return res.json({ 
+          success: false, 
+          message: "Error fetching skills profile"
+        });
+      }
+      
+      if (results.length === 0) {
+        return res.json({
+          success: true,
+          skills: {
+            research_areas: [],
+            technical_skills: [],
+            publications: 0,
+            email: userEmail
+          }
+        });
+      }
+      
+      // Parse JSON strings
+      const skills = results[0];
+      try {
+        skills.research_areas = JSON.parse(skills.research_areas || '[]');
+        skills.technical_skills = JSON.parse(skills.technical_skills || '[]');
+      } catch (e) {
+        console.error("Error parsing skills JSON:", e);
+        skills.research_areas = [];
+        skills.technical_skills = [];
+      }
+      
+      return res.json({ 
+        success: true, 
+        skills
+      });
+    }
+  );
+});
+
+// Update user's skills profile
+app.post("/api/skills", checkAuth, (req, res) => {
+  const userEmail = req.user ? req.user.email : req.session.user[0].email;
+  const { research_areas, technical_skills, publications } = req.body;
+  
+  if (!userEmail) {
+    return res.json({ success: false, message: "User not authenticated" });
+  }
+
+  // Check if user already has a skills profile
+  db.query(
+    `SELECT * FROM researcher_skills WHERE email = ?`,
+    [userEmail],
+    (err, results) => {
+      if (err) {
+        console.error("Error checking skills profile:", err);
+        return res.json({ 
+          success: false, 
+          message: "Error updating skills profile"
+        });
+      }
+      
+      const researchAreasJson = JSON.stringify(research_areas || []);
+      const technicalSkillsJson = JSON.stringify(technical_skills || []);
+      
+      if (results.length === 0) {
+        // Insert new skills profile
+        db.query(
+          `INSERT INTO researcher_skills 
+           (email, research_areas, technical_skills, publications, updated_at)
+           VALUES (?, ?, ?, ?, NOW())`,
+          [userEmail, researchAreasJson, technicalSkillsJson, publications || 0],
+          (err) => {
+            if (err) {
+              console.error("Error creating skills profile:", err);
+              return res.json({ 
+                success: false, 
+                message: "Error creating skills profile"
+              });
+            }
+            
+            return res.json({ 
+              success: true, 
+              message: "Skills profile created successfully"
+            });
+          }
+        );
+      } else {
+        // Update existing skills profile
+        db.query(
+          `UPDATE researcher_skills 
+           SET research_areas = ?, technical_skills = ?, publications = ?, updated_at = NOW()
+           WHERE email = ?`,
+          [researchAreasJson, technicalSkillsJson, publications || 0, userEmail],
+          (err) => {
+            if (err) {
+              console.error("Error updating skills profile:", err);
+              return res.json({ 
+                success: false, 
+                message: "Error updating skills profile"
+              });
+            }
+            
+            return res.json({ 
+              success: true, 
+              message: "Skills profile updated successfully"
+            });
+          }
+        );
+      }
+    }
+  );
+});
+
+// Get upcoming deadlines
+app.get("/api/deadlines", checkAuth, (req, res) => {
+  const userEmail = req.user ? req.user.email : req.session.user[0].email;
+  
+  if (!userEmail) {
+    return res.json({ success: false, message: "User not authenticated" });
+  }
+
+  db.query(
+    `SELECT t.*, p.title as project_title
+     FROM tasks t
+     JOIN projects p ON t.project_id = p.id
+     JOIN collaborators c ON p.id = c.project_id AND c.collaborator_email = ?
+     WHERE t.deadline IS NOT NULL AND t.completed = false
+     ORDER BY t.deadline ASC
+     LIMIT 5`,
+    [userEmail],
+    (err, results) => {
+      if (err) {
+        console.error("Error fetching deadlines:", err);
+        return res.json({ 
+          success: false, 
+          message: "Error fetching deadlines"
+        });
+      }
+      
+      return res.json({ 
+        success: true, 
+        deadlines: results
+      });
+    }
+  );
+});
 
 // Start server
 app.listen(PORT, () => {

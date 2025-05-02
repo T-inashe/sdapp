@@ -1,46 +1,51 @@
 import  { useState, FormEvent, ChangeEvent, JSX } from 'react';
+import React, { useContext} from 'react';
 import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
 import axios from 'axios';
+import AuthContext from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import config from '../config';
 
 interface ProjectFormData {
+  creator?: string;
   title: string;
   description: string;
-  researchGoals: string;
-  researchArea: string;
-  startDate: string;
-  endDate: string;
-  fundingAvailable: boolean;
-  fundingAmount: string;
-  collaboratorsNeeded: boolean;
-  collaboratorRoles: string;
+  research_goals: string;
+  research_area: string;
+  start_date: string;
+  end_date: string;
+  funding_available: boolean;
+  funding_amount: string;
+  collaborators_needed: boolean;
+  collaborator_roles: string;
   institution: string;
-  contactEmail: string;
+  contact_email: string;
 }
 
 function CreateProject(): JSX.Element {
   const navigate = useNavigate();
+  const { user, logout } = useContext(AuthContext);
   const [formData, setFormData] = useState<ProjectFormData>({
+    creator:'',
     title: '',
     description: '',
-    researchGoals: '',
-    researchArea: '',
-    startDate: '',
-    endDate: '',
-    fundingAvailable: false,
-    fundingAmount: '',
-    collaboratorsNeeded: false,
-    collaboratorRoles: '',
+    research_goals: '',
+    research_area: '',
+    start_date: '',
+    end_date: '',
+    funding_available: false,
+    funding_amount: '',
+    collaborators_needed: false,
+    collaborator_roles: '',
     institution: '',
-    contactEmail: ''
+    contact_email: ''
   });
 
   const [validated, setValidated] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
-  const researchAreas: string[] = [
+  const research_areas: string[] = [
     'Artificial Intelligence',
     'Data Science',
     'Machine Learning',
@@ -61,9 +66,9 @@ function CreateProject(): JSX.Element {
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-    
     setFormData({
       ...formData,
+      creator: user?.id || '',
       [name]: type === 'checkbox' ? checked : value
     });
   };
@@ -81,16 +86,15 @@ function CreateProject(): JSX.Element {
     setIsSubmitting(true);
     setError('');
 
+    console.log("Submitting Project Data:", formData);
+
+
     try {
-      const response = await axios.post(`${config.API_URL}/api/projects/create`, formData, {
+      const response = await axios.post(`${config.API_URL}/api/createproject/projects`, formData, {
         withCredentials: true
       });
-      
-      if (response.data.success) {
-        navigate('/dashboard');
-      } else {
-        setError(response.data.message || 'Failed to create project');
-      }
+      console.log('Project data:', response.data)
+      navigate('/dashboard');
     } catch (err) {
       setError('Server error. Please try again later.');
       console.error('Project creation error:', err);
@@ -147,8 +151,8 @@ function CreateProject(): JSX.Element {
                   <Form.Control
                     as="textarea"
                     rows={3}
-                    name="researchGoals"
-                    value={formData.researchGoals}
+                    name="research_goals"
+                    value={formData.research_goals}
                     onChange={handleChange}
                     required
                     placeholder="List the key research goals and objectives"
@@ -161,13 +165,13 @@ function CreateProject(): JSX.Element {
                 <Form.Group className="mb-3">
                   <Form.Label>Research Area *</Form.Label>
                   <Form.Select
-                    name="researchArea"
-                    value={formData.researchArea}
+                    name="research_area"
+                    value={formData.research_area}
                     onChange={handleChange}
                     required
                   >
                     <option value="">Select Research Area</option>
-                    {researchAreas.map((area, index) => (
+                    {research_areas.map((area, index) => (
                       <option key={index} value={area}>{area}</option>
                     ))}
                   </Form.Select>
@@ -182,8 +186,8 @@ function CreateProject(): JSX.Element {
                       <Form.Label>Start Date *</Form.Label>
                       <Form.Control
                         type="date"
-                        name="startDate"
-                        value={formData.startDate}
+                        name="start_date"
+                        value={formData.start_date}
                         onChange={handleChange}
                         required
                       />
@@ -197,8 +201,8 @@ function CreateProject(): JSX.Element {
                       <Form.Label>End Date *</Form.Label>
                       <Form.Control
                         type="date"
-                        name="endDate"
-                        value={formData.endDate}
+                        name="end_date"
+                        value={formData.end_date}
                         onChange={handleChange}
                         required
                       />
@@ -213,19 +217,19 @@ function CreateProject(): JSX.Element {
                   <Form.Check
                     type="checkbox"
                     label="Funding Available"
-                    name="fundingAvailable"
-                    checked={formData.fundingAvailable}
+                    name="funding_available"
+                    checked={formData.funding_available}
                     onChange={handleChange}
                   />
                 </Form.Group>
 
-                {formData.fundingAvailable && (
+                {formData.funding_available && (
                   <Form.Group className="mb-3">
                     <Form.Label>Funding Amount ($)</Form.Label>
                     <Form.Control
                       type="number"
-                      name="fundingAmount"
-                      value={formData.fundingAmount}
+                      name="funding_amount"
+                      value={formData.funding_amount}
                       onChange={handleChange}
                       placeholder="Enter the available funding amount"
                     />
@@ -236,20 +240,20 @@ function CreateProject(): JSX.Element {
                   <Form.Check
                     type="checkbox"
                     label="Seeking Collaborators"
-                    name="collaboratorsNeeded"
-                    checked={formData.collaboratorsNeeded}
+                    name="collaborators_needed"
+                    checked={formData.collaborators_needed}
                     onChange={handleChange}
                   />
                 </Form.Group>
 
-                {formData.collaboratorsNeeded && (
+                {formData.collaborators_needed && (
                   <Form.Group className="mb-3">
                     <Form.Label>Collaborator Roles Needed</Form.Label>
                     <Form.Control
                       as="textarea"
                       rows={2}
-                      name="collaboratorRoles"
-                      value={formData.collaboratorRoles}
+                      name="collaborator_roles"
+                      value={formData.collaborator_roles}
                       onChange={handleChange}
                       placeholder="Describe the roles and expertise you're looking for"
                     />
@@ -271,8 +275,8 @@ function CreateProject(): JSX.Element {
                   <Form.Label>Contact Email</Form.Label>
                   <Form.Control
                     type="email"
-                    name="contactEmail"
-                    value={formData.contactEmail}
+                    name="contact_email"
+                    value={formData.contact_email}
                     onChange={handleChange}
                     placeholder="Email for project inquiries"
                   />

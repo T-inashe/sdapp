@@ -520,25 +520,34 @@ const CollaboratorDashboard: React.FC = () => {
               </Col>
 
               <Col md={4}>
-                <h4 className="mb-3">Recent Notifications</h4>
-                <Card>
-                  <Card.Body className="p-0">
-                    <div className="notification-list">
-                      {notifications.map(notification => (
-                        <div key={notification.id} className="notification-item">
-                          <div className={`notification-indicator bg-${getNotificationVariant(notification.type)}`}></div>
-                          <div className="notification-content">
-                            <p className="mb-1">{notification.message}</p>
-                            <small className="text-muted">{notification.date}</small>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="text-center p-3">
-                      <Button variant="link" className="text-decoration-none">View All Notifications</Button>
-                    </div>
-                  </Card.Body>
-                </Card>
+              <h4 className="mb-3">Recent Notifications</h4>
+<Card>
+  <Card.Body className="p-0">
+    <div className="notification-list">
+      {notifications.length === 0 ? (
+        <div className="text-center p-4">
+          <i className="bi bi-bell text-muted display-4"></i>
+          <p className="mt-3">No notifications yet</p>
+        </div>
+      ) : (
+        notifications.slice(0, 5).map(notification => (
+          <div key={notification.id} className="notification-item">
+            <div className={`notification-indicator bg-${getNotificationVariant(notification.type)}`}></div>
+            <div className="notification-content">
+              <p className="mb-1">{notification.message}</p>
+              <small className="text-muted">{notification.date}</small>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+    <div className="text-center p-3">
+      <Link to="/notifications" className="text-decoration-none">
+        <Button variant="link" className="text-decoration-none">View All Notifications</Button>
+      </Link>
+    </div>
+  </Card.Body>
+</Card>
 
                 <h4 className="mb-3 mt-4">Skills Profile</h4>
                 <Card>

@@ -59,7 +59,7 @@ const CollaboratorDashboard: React.FC = () => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        const projectResponse = await axios.get(`${config.API_URL}/api/createproject/projects`, {
+        const projectResponse = await axios.get(`${config.API_URL}/api/createproject/creator/${user?.id}`, {
         withCredentials: true
        });
       

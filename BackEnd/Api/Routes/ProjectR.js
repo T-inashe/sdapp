@@ -5,6 +5,7 @@ import {
   getResearchProjectById,
   updateResearchProject,
   deleteResearchProjectById,
+  getResearchProjectsByCreator,
 } from '../Controller/ProjectC.js'; // Importing correct project-related controllers
 
 const router = express.Router();
@@ -41,6 +42,15 @@ router.get('/projects/:id', async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ message: 'Error fetching research project', error: error.message });
+  }
+});
+
+router.get('/creator/:creatorId', async (req, res) => {
+  try {
+    const projects = await getResearchProjectsByCreator(req.params.creatorId);
+    res.status(200).json(projects);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

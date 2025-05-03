@@ -36,6 +36,16 @@ export const getAllResearchProjects = async () => {
   }
 };
 
+
+export const getResearchProjectsByCreator = async (creatorId) => {
+  try {
+    const projects = await ResearchProject.find({ creator: creatorId });
+    return projects;
+  } catch (error) {
+    throw new Error(`Error fetching projects for creator ${creatorId}: ${error.message}`);
+  }
+};
+
 // READ a research project by ID
 export const getResearchProjectById = async (id) => {
   try {

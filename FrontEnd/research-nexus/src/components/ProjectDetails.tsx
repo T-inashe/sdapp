@@ -61,6 +61,25 @@ const ProjectDetail: React.FC = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
+  const handleDelete = async () => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this project?");
+    if (!confirmDelete) return;
+  
+    try {
+      const response = await axios.delete(`${config.API_URL}/api/createproject/projects/${id}`, {
+        withCredentials: true
+      });
+  
+      if (response.status === 200 || response.data) {
+        navigate('/collaboratordashboard'); // Redirect to project list after deletion
+      } else {
+        setError(response.data.message || 'Failed to delete project');
+      }
+    } catch (err) {
+      setError('Server error while deleting. Please try again later.');
+      console.error('Project deletion error:', err);
+    }
+  };
   if (isLoading) {
     return (
       <Container className="py-5 text-center">
@@ -179,11 +198,14 @@ const ProjectDetail: React.FC = () => {
             <Button variant="outline-secondary" onClick={() => navigate('/collaboratordashboard')}>
               <FiArrowLeft className="me-2" /> Back to Dashboard
             </Button>
-            <Link to={`/projects/${id}/edit`}>
-              <Button variant="primary">
-                <FiEdit className="me-2" /> Edit Project
-              </Button>
-            </Link>
+            <Button 
+              variant="danger"
+              size="lg"
+              onClick={handleDelete}
+            >
+              Delete Project
+            </Button>
+
           </div>
         </Card.Body>
       </Card>

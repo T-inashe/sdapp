@@ -690,11 +690,6 @@ const CollaboratorDashboard: React.FC = () => {
                         >
                           Apply Now
                         </Button>
-                        <Link to={`/opportunities/${opportunity.id}`}>
-                          <Button variant="outline-primary" size="sm">
-                            View Details
-                          </Button>
-                        </Link>
                       </div>
                     </Card.Body>
                   </Card>

@@ -94,7 +94,7 @@ function CreateProject(): JSX.Element {
         withCredentials: true
       });
       console.log('Project data:', response.data)
-      navigate('/dashboard');
+      navigate('/collaboratordashboard');
     } catch (err) {
       setError('Server error. Please try again later.');
       console.error('Project creation error:', err);

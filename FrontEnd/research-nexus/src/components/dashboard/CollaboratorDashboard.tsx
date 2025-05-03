@@ -55,6 +55,31 @@ const CollaboratorDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
+  const fetchOpportunities = async () => {
+    try {
+      const response = await axios.get(`${config.API_URL}/api/createproject/projects`);
+      const data: Project[] = response.data; // No need for .json() with axios
+  
+      const filtered = data
+        .filter(project => project.collaborators_needed)
+        .map(project => ({
+          id: project._id,
+          title: project.title,
+          research_area: project.research_area,
+          institution: project.institution || "Unknown Institution",
+          deadline: project.end_date,
+          skills_needed: project.collaborator_roles
+            ? project.collaborator_roles.split(',').map(skill => skill.trim())
+            : [],
+          matchScore: Math.floor(Math.random() * 21) + 80 // Temporary mock score
+        }));
+  
+      setOpportunities(filtered);
+    } catch (err) {
+      console.error("Failed to fetch projects:", err);
+    }
+  };
+  
   useEffect(() => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
@@ -68,45 +93,7 @@ const CollaboratorDashboard: React.FC = () => {
        } else {
          console.error('Failed to load projects:', projectResponse.data.message);
        }
-        // Mock opportunities data - would be from real API in production
-        setOpportunities([
-          {
-            id: 1,
-            title: "AI in Healthcare Research",
-            research_area: "Machine Learning",
-            institution: "Stanford University",
-            deadline: "2025-05-20",
-            skills_needed: ["Machine Learning", "Healthcare", "Data Analysis"],
-            matchScore: 93
-          },
-          {
-            id: 2,
-            title: "Climate Change Impact Assessment",
-            research_area: "Environmental Science",
-            institution: "MIT",
-            deadline: "2025-06-15",
-            skills_needed: ["Environmental Science", "Statistical Analysis", "GIS"],
-            matchScore: 87
-          },
-          {
-            id: 3,
-            title: "Quantum Computing Applications",
-            research_area: "Computer Science",
-            institution: "Cambridge University",
-            deadline: "2025-05-30",
-            skills_needed: ["Quantum Computing", "Algorithm Design", "Mathematics"],
-            matchScore: 82
-          },
-          {
-            id: 4,
-            title: "Neuroplasticity in Learning",
-            research_area: "Neuroscience",
-            institution: "Harvard Medical School",
-            deadline: "2025-07-01",
-            skills_needed: ["Neuroscience", "Psychology", "Data Analysis"],
-            matchScore: 79
-          }
-        ]);
+      
 
         // Mock notifications
         try {
@@ -135,7 +122,7 @@ const CollaboratorDashboard: React.FC = () => {
         setIsLoading(false);
       }
     };
-
+    fetchOpportunities();
     fetchDashboardData();
   }, []);
 
@@ -436,11 +423,6 @@ const CollaboratorDashboard: React.FC = () => {
                           >
                             Apply Now
                           </Button>
-                          <Link to={`/opportunities/${opportunity.id}`}>
-                            <Button variant="outline-primary" size="sm">
-                              View Details
-                            </Button>
-                          </Link>
                         </div>
                       </Card.Body>
                     </Card>
@@ -583,42 +565,30 @@ const CollaboratorDashboard: React.FC = () => {
                     </div>
                   </Card.Body>
                 </Card>
-
                 <h4 className="mb-3 mt-4">Upcoming Deadlines</h4>
                 <Card>
                   <Card.Body>
-                    <div className="deadline-item">
-                      <div className="deadline-date">
-                        <span className="day">15</span>
-                        <span className="month">May</span>
-                      </div>
-                      <div className="deadline-info">
-                        <h6>Submit Research Data</h6>
-                        <p className="mb-0 text-muted small">Climate Change Impact Assessment</p>
-                      </div>
-                    </div>
-                    <div className="deadline-item">
-                      <div className="deadline-date">
-                        <span className="day">22</span>
-                        <span className="month">May</span>
-                      </div>
-                      <div className="deadline-info">
-                        <h6>Weekly Team Meeting</h6>
-                        <p className="mb-0 text-muted small">AI in Healthcare Research</p>
-                      </div>
-                    </div>
-                    <div className="deadline-item">
-                      <div className="deadline-date">
-                        <span className="day">30</span>
-                        <span className="month">May</span>
-                      </div>
-                      <div className="deadline-info">
-                        <h6>Final Report Draft</h6>
-                        <p className="mb-0 text-muted small">Quantum Computing Applications</p>
-                      </div>
-                    </div>
+                    {upcomingDeadlines.map((project, index) => {
+                      const endDate = new Date(project.end_date);
+                      const day = endDate.getDate();
+                      const month = endDate.toLocaleString('default', { month: 'short' }); // e.g., May
+
+                      return (
+                        <div className="deadline-item" key={index}>
+                          <div className="deadline-date">
+                            <span className="day">{day}</span>
+                            <span className="month">{month}</span>
+                          </div>
+                          <div className="deadline-info">
+                            <h6>{project.title}</h6>
+                            <p className="mb-0 text-muted small">{project.description}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </Card.Body>
                 </Card>
+
               </Col>
             </Row>
           </Container>

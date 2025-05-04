@@ -14,8 +14,8 @@ import { fileURLToPath } from 'url';
 import cors from 'cors';
 
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8081';
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const BACKEND_URL = process.env.BACKEND_URL ;
 
 const app = express();
 app.use(cors({
@@ -62,5 +62,5 @@ app.get("/", (req, res) => {
 // Start Server
 const port = process.env.PORT || 8081;
 app.listen(port, () => {
-  console.log(`🚀 Server running on http://localhost:${port}`);
+  console.log(`🚀 Server running on port : ${port}`);
 });

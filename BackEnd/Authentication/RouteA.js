@@ -6,7 +6,7 @@ import User from '../Api/Models/User.js';
 const router = express.Router();
 
 // Get frontend URL from environment variable or use default for local development
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 // Google OAuth login route
 router.get(

@@ -87,3 +87,67 @@
       padding: 1rem;
     }
   }
+
+  
+.message-card:hover {
+  background-color: #eaf6ff;
+  cursor: pointer;
+  transform: translateY(-2px);
+}
+
+.project-status {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #f0ad4e; /* Default button color (can be overridden by JS) */
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  text-align: center;
+  user-select: none;
+}
+
+.role-label {
+  position: absolute;
+  top: 10px; /* Position it below the name */
+  left: 10px; /* Align with the left edge of the profile circle */
+  background-color: #4999f5; /* You can customize this color */
+  color: rgb(255, 255, 255);
+  padding: 4px 20px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: default;
+  text-align: center;
+  user-select: none;
+}
+
+.project-title {
+  position: absolute;
+  top: 10px; 
+  left: 430px; 
+  padding: 4px 20px;
+  font-size: 12px;
+  display: flex;
+  justify-content: center;       
+  margin-bottom: 10px;     
+}
+
+.funding_amount {
+  position: absolute;
+  top: 170px; 
+  left: 1030px; 
+  padding: 4px 20px;
+  font-size: 12px;
+  display: flex;
+  justify-content: center;       
+  margin-bottom: 10px;     
+}
+
+
+.project-title h5 {
+  font-weight: 800; /* Even bolder */
+}

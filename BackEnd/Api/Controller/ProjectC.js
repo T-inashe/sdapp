@@ -49,7 +49,7 @@ export const getResearchProjectsByCreator = async (creatorId) => {
 // READ a research project by ID
 export const getResearchProjectById = async (id) => {
   try {
-    const project = await ResearchProject.findById(id);
+    const project = await ResearchProject.findById(id).populate('creator');
     if (!project) {
       throw new Error("Research project not found");
     }

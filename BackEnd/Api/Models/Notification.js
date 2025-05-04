@@ -16,7 +16,7 @@ const NotificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['booking', 'message', 'reminder', 'success'], // customize as needed
+    enum: ['booking', 'message', 'reminder', 'success',"InviteDeclined"], // customize as needed
     default: 'general',
   },
   date: {

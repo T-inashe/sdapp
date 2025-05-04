@@ -55,6 +55,11 @@ const ResearchProjectSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    status: {
+      type: String,
+      enum: ['Active', 'Pending Collab', 'Declined', 'Active Collab',"Cancelled"], 
+      default: 'Active',
+    },
   },
   { timestamps: { createdAt: 'created_at', updatedAt: false } }
 );

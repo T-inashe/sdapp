@@ -6,6 +6,7 @@ import { FiUsers, FiFileText, FiMessageSquare, FiCalendar, FiSettings, FiLogOut,
 import axios from 'axios';
 import './Dashboard.css';
 import Calendar from './Calendar'; 
+import MessagePage from '../../pages/Messages';
 import config from '../../config';
 
 interface Project {
@@ -27,6 +28,7 @@ interface Project {
   status?: string;
   role?: string;
 }
+
 
 interface Notification {
   id: string;
@@ -57,7 +59,7 @@ const CollaboratorDashboard: React.FC = () => {
 
   const fetchOpportunities = async () => {
     try {
-      const response = await axios.get(`${config.API_URL}/api/createproject/projects`);
+      const response = await axios.get(`${config.API_URL}/api/createproject/creator/${user?.id}`);
       const data: Project[] = response.data; // No need for .json() with axios
   
       const filtered = data
@@ -91,7 +93,7 @@ const CollaboratorDashboard: React.FC = () => {
        if (projectResponse.data) {
          setProjects(projectResponse.data);
        } else {
-         console.error('Failed to load projects:', projectResponse.data.message);
+         console.error('Failed to load projects:', projectResponse.data);
        }
       
 
@@ -415,14 +417,14 @@ const CollaboratorDashboard: React.FC = () => {
                         </div>
                         
                         <div className="mt-3">
-                          <Button 
-                            variant="primary" 
-                            size="sm" 
-                            className="me-2"
-                            onClick={() => handleApply(opportunity.id)}
-                          >
-                            Apply Now
-                          </Button>
+                        <Button 
+                          variant="primary" 
+                          size="sm" 
+                          className="me-2"
+                          onClick={() => navigate(`/collaborators/${opportunity.id}`)}
+                        >
+                          Invite Collaborators
+                        </Button>
                         </div>
                       </Card.Body>
                     </Card>
@@ -784,6 +786,7 @@ const CollaboratorDashboard: React.FC = () => {
           </Container>
         )}
 
+        {activeTab === 'messages' && <MessagePage />}
         {activeTab === 'calendar' && (
           <Container fluid>
             <Row className="mb-4">
@@ -845,8 +848,6 @@ const CollaboratorDashboard: React.FC = () => {
         
         {(activeTab !== 'overview' && activeTab !== 'opportunities' && activeTab !== 'projects') && (
           <div className="text-center py-5">
-            <h3>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h3>
-            <p className="text-muted">This section is under development.</p>
           </div>
         )}
       </div>

@@ -301,6 +301,12 @@ const CollaboratorDashboard: React.FC = () => {
           >
             <FiBriefcase className="me-2" /> My Projects
           </Nav.Link>
+           <Nav.Link
+            className={activeTab === 'collaborators' ? 'active' : ''}
+            onClick={() => setActiveTab('collaborators')}
+          >
+            <FiUsers className="me-2" /> Collaborators
+          </Nav.Link>
           <Nav.Link
             className={activeTab === 'messages' ? 'active' : ''}
             onClick={() => setActiveTab('messages')}

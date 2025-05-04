@@ -1,0 +1,254 @@
+/* Dashboard Layout */
+.dashboard-container {
+    display: flex;
+    min-height: 100vh;
+  }
+  
+  .dashboard-sidebar {
+    width: 280px;
+    background-color: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    z-index: 1000;
+  }
+  
+  .dashboard-content {
+    flex: 1;
+    margin-left: 280px;
+    padding: 1rem;
+    background-color: #f5f7fa;
+    min-height: 100vh;
+  }
+  
+  .sidebar-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #dee2e6;
+    text-align: center;
+  }
+  
+  .user-profile {
+    margin-bottom: 1rem;
+  }
+  
+  .avatar-container {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .user-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    background-color: #007bff;
+    color: white;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .sidebar-nav .nav-link {
+    padding: 0.75rem 1.5rem;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    border-radius: 0;
+    transition: background-color 0.2s;
+  }
+  
+  .sidebar-nav .nav-link:hover {
+    background-color: #e9ecef;
+  }
+  
+  .sidebar-nav .nav-link.active {
+    background-color: #e9ecef;
+    color: #007bff;
+    font-weight: 500;
+  }
+  
+  /* Dashboard Header */
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1rem 0;
+  }
+  
+  /* Welcome Card */
+  .welcome-card {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+  }
+  
+  .welcome-illustration {
+    background-image: url('/path/to/illustration.svg');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    height: 150px;
+  }
+  
+  /* Proposal Cards */
+  .proposal-card {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .proposal-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .deadline-badge {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 8px;
+    text-align: center;
+  }
+  
+  .deadline-date {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .proposal-description {
+    color: #495057;
+    margin-bottom: 1rem;
+  }
+  
+  .project-meta {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Notification List */
+  .notification-list {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  .notification-item {
+    display: flex;
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  .notification-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 1rem;
+    margin-top: 6px;
+  }
+  
+  .notification-content {
+    flex: 1;
+  }
+  
+  /* Detail Items */
+  .detail-item {
+    margin-bottom: 0.75rem;
+  }
+  
+  .detail-label {
+    font-weight: 500;
+    margin-right: 0.5rem;
+    color: #6c757d;
+  }
+  
+  .detail-value {
+    color: #212529;
+  }
+  
+  /* Evaluation Summary */
+  .evaluation-summary {
+    background-color: #f8f9fa;
+  }
+  
+  .score-item {
+    align-items: center;
+  }
+  
+  .ratings {
+    letter-spacing: 2px;
+  }
+  
+  .star-filled {
+    color: #ffc107;
+  }
+  
+  .star-empty {
+    color: #dee2e6;
+  }
+  
+  /* Stats Items */
+  .stats-item {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .stats-item:last-child {
+    border-bottom: none;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 992px) {
+    .dashboard-sidebar {
+      width: 240px;
+    }
+    
+    .dashboard-content {
+      margin-left: 240px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .dashboard-container {
+      flex-direction: column;
+    }
+    
+    .dashboard-sidebar {
+      width: 100%;
+      height: auto;
+      position: relative;
+      border-right: none;
+      border-bottom: 1px solid #dee2e6;
+    }
+    
+    .dashboard-content {
+      margin-left: 0;
+    }
+    
+    .sidebar-nav {
+      flex-direction: row;
+      overflow-x: auto;
+      padding: 0.5rem;
+    }
+    
+    .sidebar-nav .nav-link {
+      white-space: nowrap;
+    }
+    
+    .user-profile {
+      display: none;
+    }
+  }

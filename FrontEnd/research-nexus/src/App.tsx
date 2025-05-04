@@ -17,6 +17,8 @@ import EditProject from './components/EditProject';
 import Signup from './components/auth/SignUp';
 import ProjectDetail from './components/ProjectDetails';
 import CollaboratorDashboard from './components/dashboard/CollaboratorDashboard';
+import ReviewerDashboard from './components/dashboard/ReviewerDashboard';
+import AdminDashboard from './components/dashboard/AdminDashboard';
 
 // Protected route component
 // const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -39,6 +41,8 @@ const App: React.FC = () => {
           <Route path="/signup" element={<Signup />} />
           <Route path="/register" element={<Register />} />
           <Route path="/collaboratordashboard" element={<CollaboratorDashboard />} />
+          <Route path="/admindashboard" element={<AdminDashboard />} />
+          <Route path="/reviewerdashboard" element={<ReviewerDashboard />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/Collaborators/:id" element={<Collaborators />} />
           <Route path="/chat/:id" element={<ChatPage />} />

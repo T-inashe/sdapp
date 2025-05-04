@@ -24,7 +24,7 @@ router.get(
         return res.redirect(`http://localhost:5173/signup?userId=${userId}&message=You%20need%20to%20create%20an%20account%20before%20you%20log%20in.`);
       }
 
-      res.redirect(`http://localhost:5173/collaboratordashboard?token=${token}`)
+      res.redirect(`http://localhost:5173/admindashboard?token=${token}`)
       
     }
      catch (error) {

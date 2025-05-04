@@ -1,5 +1,5 @@
 // config.ts
-const API_URL: string = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+const API_URL: string = import.meta.env.VITE_API_URL || 'https://sdapp-ayhgapg0f5b0axd8.southafricanorth-01.azurewebsites.net';
 
 export default {
   API_URL

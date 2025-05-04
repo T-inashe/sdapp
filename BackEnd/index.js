@@ -55,11 +55,6 @@ app.use('/api/createproject', createprojectRoutes);
 app.use('/api/collaborator', collaboratorRoutes);
 app.use('/api/message', messageRoutes);
 
-
-app.get('/',  (req, res) => {
-  res.sendFile(path.join(__dirname, 'dashboard.html'));
-});
-
 app.get("/", (req, res) => {
   res.send("we are live" + BACKEND_URL);
 });

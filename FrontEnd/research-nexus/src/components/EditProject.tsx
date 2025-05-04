@@ -1,53 +1,48 @@
+import React from 'react';
 import { useState, useEffect, FormEvent, ChangeEvent, JSX } from 'react';
 import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
-import React, { useContext} from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
-import config from '../config';
-import AuthContext from '../context/AuthContext';
 
 interface ProjectFormData {
-  creator?: string;
   title: string;
   description: string;
-  research_goals: string;
-  research_area: string;
-  start_date: string;
-  end_date: string;
-  funding_available: boolean;
-  funding_amount: string;
-  collaborators_needed: boolean;
-  collaborator_roles: string;
+  researchGoals: string;
+  researchArea: string;
+  startDate: string;
+  endDate: string;
+  fundingAvailable: boolean;
+  fundingAmount: string;
+  collaboratorsNeeded: boolean;
+  collaboratorRoles: string;
   institution: string;
-  contact_email: string;
+  contactEmail: string;
 }
 
 function EditProject(): JSX.Element {
   const navigate = useNavigate();
-  const { user, logout } = useContext(AuthContext);
   const { id } = useParams<{ id: string }>();
   const [formData, setFormData] = useState<ProjectFormData>({
-     creator:'',
-     title: '',
-     description: '',
-     research_goals: '',
-     research_area: '',
-     start_date: '',
-     end_date: '',
-     funding_available: false,
-     funding_amount: '',
-     collaborators_needed: false,
-     collaborator_roles: '',
-     institution: '',
-     contact_email: ''
-   });
-   
+    title: '',
+    description: '',
+    researchGoals: '',
+    researchArea: '',
+    startDate: '',
+    endDate: '',
+    fundingAvailable: false,
+    fundingAmount: '',
+    collaboratorsNeeded: false,
+    collaboratorRoles: '',
+    institution: '',
+    contactEmail: ''
+  });
+
   const [validated, setValidated] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
-  const research_areas: string[] = [
+  const researchAreas: string[] = [
     'Artificial Intelligence',
     'Data Science',
     'Machine Learning',
@@ -69,27 +64,27 @@ function EditProject(): JSX.Element {
     const fetchProjectData = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`${config.API_URL}/api/createproject/projects/${id}`, {
+        const response = await axios.get(`http://localhost:8081/api/projects/${id}`, {
           withCredentials: true
         });
         
-        if (response.data) {
-          const projectData = response.data;
+        if (response.data.success) {
+          const projectData = response.data.project;
           
           // Convert from snake_case database fields to camelCase used in the form
           setFormData({
             title: projectData.title,
             description: projectData.description,
-            research_goals: projectData.research_goals,
-            research_area: projectData.research_area,
-            start_date: formatDateForInput(projectData.start_date),
-            end_date: formatDateForInput(projectData.end_date),
-            funding_available: projectData.funding_available,
-            funding_amount: projectData.funding_amount || '',
-            collaborators_needed: projectData.collaborators_needed,
-            collaborator_roles: projectData.collaborator_roles || '',
+            researchGoals: projectData.research_goals,
+            researchArea: projectData.research_area,
+            startDate: formatDateForInput(projectData.start_date),
+            endDate: formatDateForInput(projectData.end_date),
+            fundingAvailable: projectData.funding_available,
+            fundingAmount: projectData.funding_amount || '',
+            collaboratorsNeeded: projectData.collaborators_needed,
+            collaboratorRoles: projectData.collaborator_roles || '',
             institution: projectData.institution || '',
-            contact_email: projectData.contact_email
+            contactEmail: projectData.contact_email
           });
         } else {
           setError(response.data.message || 'Failed to load project data');
@@ -117,7 +112,6 @@ function EditProject(): JSX.Element {
     
     setFormData({
       ...formData,
-      creator: user?.id || '',
       [name]: type === 'checkbox' ? checked : value
     });
   };
@@ -136,14 +130,14 @@ function EditProject(): JSX.Element {
     setError('');
 
     try {
-      const response = await axios.put(`${config.API_URL}/api/createproject/projects/${id}`, formData, {
+      const response = await axios.put(`http://localhost:8081/api/projects/${id}/update`, formData, {
         withCredentials: true
       });
       
-      if (response.data) {
+      if (response.data.success) {
         navigate(`/projects/${id}`);
       } else {
-        setError(response.data || 'Failed to update project');
+        setError(response.data.message || 'Failed to update project');
       }
     } catch (err) {
       setError('Server error. Please try again later.');
@@ -179,8 +173,9 @@ function EditProject(): JSX.Element {
               
               <Form noValidate validated={validated} onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Project Title *</Form.Label>
+                  <Form.Label htmlFor="projectTitle">Project Title *</Form.Label>
                   <Form.Control
+                    id="projectTitle"
                     type="text"
                     name="title"
                     value={formData.title}
@@ -194,8 +189,9 @@ function EditProject(): JSX.Element {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Description *</Form.Label>
+                  <Form.Label htmlFor="projectDescription">Description *</Form.Label>
                   <Form.Control
+                    id="projectDescription"
                     as="textarea"
                     rows={4}
                     name="description"
@@ -210,12 +206,13 @@ function EditProject(): JSX.Element {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Research Goals *</Form.Label>
+                  <Form.Label htmlFor="ResearchGoals">Research Goals *</Form.Label>
                   <Form.Control
+                    id="ResearchGoals"
                     as="textarea"
                     rows={3}
-                    name="research_goals"
-                    value={formData. research_goals}
+                    name="researchGoals"
+                    value={formData.researchGoals}
                     onChange={handleChange}
                     required
                     placeholder="List the key research goals and objectives"
@@ -226,31 +223,33 @@ function EditProject(): JSX.Element {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Research Area *</Form.Label>
+                  <Form.Label htmlFor="researchArea">Research Area *</Form.Label>
                   <Form.Select
-name="research_area"
-value={formData.research_area}
-onChange={handleChange}
-required
->
-<option value="">Select Research Area</option>
-{research_areas.map((area, index) => (
-  <option key={index} value={area}>{area}</option>
-))}
-</Form.Select>
-<Form.Control.Feedback type="invalid">
-Please select a research area.
-</Form.Control.Feedback>
-</Form.Group>
+                    id="researchArea"
+                    name="researchArea"
+                    value={formData.researchArea}
+                    onChange={handleChange}
+                    required
+                  >
+                  <option value="">Select Research Area</option>
+                  {researchAreas.map((area, index) => (
+                    <option key={index} value={area}>{area}</option>
+                  ))}
+                  </Form.Select>
+                <Form.Control.Feedback type="invalid">
+                  Please select a research area.
+                </Form.Control.Feedback>
+                </Form.Group>
 
 <Row>
 <Col md={6}>
 <Form.Group className="mb-3">
-  <Form.Label>Start Date *</Form.Label>
+  <Form.Label htmlFor="startDate">Start Date *</Form.Label>
   <Form.Control
+    id="startDate"
     type="date"
-    name="start_date"
-    value={formData.start_date}
+    name="startDate"
+    value={formData.startDate}
     onChange={handleChange}
     required
   />
@@ -261,11 +260,12 @@ Please select a research area.
 </Col>
 <Col md={6}>
 <Form.Group className="mb-3">
-  <Form.Label>End Date *</Form.Label>
+  <Form.Label htmlFor="endDate">End Date *</Form.Label>
   <Form.Control
+    id="endDate"
     type="date"
-    name="end_date"
-    value={formData.end_date}
+    name="endDate"
+    value={formData.endDate}
     onChange={handleChange}
     required
   />
@@ -278,21 +278,23 @@ Please select a research area.
 
 <Form.Group className="mb-3">
 <Form.Check
+id="fundungAvailable"
 type="checkbox"
 label="Funding Available"
-name="funding_available"
-checked={formData.funding_available}
+name="fundingAvailable"
+checked={formData.fundingAvailable}
 onChange={handleChange}
 />
 </Form.Group>
 
-{formData.funding_available && (
+{formData.fundingAvailable && (
 <Form.Group className="mb-3">
-<Form.Label>Funding Amount ($)</Form.Label>
+<Form.Label htmlFor="fundingAmount">Funding Amount ($)</Form.Label>
 <Form.Control
+  id="fundingAmount"
   type="number"
-  name="funding_amount"
-  value={formData.funding_amount}
+  name="fundingAmount"
+  value={formData.fundingAmount}
   onChange={handleChange}
   placeholder="Enter the available funding amount"
 />
@@ -301,22 +303,24 @@ onChange={handleChange}
 
 <Form.Group className="mb-3">
 <Form.Check
+id="collaboratorsNeeded"
 type="checkbox"
 label="Seeking Collaborators"
-name="collaborators_needed"
-checked={formData.collaborators_needed}
+name="collaboratorsNeeded"
+checked={formData.collaboratorsNeeded}
 onChange={handleChange}
 />
 </Form.Group>
 
-{formData.collaborators_needed && (
+{formData.collaboratorsNeeded && (
 <Form.Group className="mb-3">
-<Form.Label>Collaborator Roles Needed</Form.Label>
+<Form.Label htmlFor="collaboratorRoles">Collaborator Roles Needed</Form.Label>
 <Form.Control
+  id="collaboratorRoles"
   as="textarea"
   rows={2}
-  name="collaborator_roles"
-  value={formData.collaborator_roles}
+  name="collaboratorRoles"
+  value={formData.collaboratorRoles}
   onChange={handleChange}
   placeholder="Describe the roles and expertise you're looking for"
 />
@@ -324,8 +328,9 @@ onChange={handleChange}
 )}
 
 <Form.Group className="mb-3">
-<Form.Label>Institution/University</Form.Label>
+<Form.Label htmlFor="institution">Institution/University</Form.Label>
 <Form.Control
+id="institution"
 type="text"
 name="institution"
 value={formData.institution}
@@ -335,11 +340,12 @@ placeholder="Your affiliated institution"
 </Form.Group>
 
 <Form.Group className="mb-3">
-<Form.Label>Contact Email</Form.Label>
+<Form.Label htmlFor="contactEmail">Contact Email</Form.Label>
 <Form.Control
+id="contactEmail"
 type="email"
-name="contact_email"
-value={formData.contact_email}
+name="contactEmail"
+value={formData.contactEmail}
 onChange={handleChange}
 placeholder="Email for project inquiries"
 />

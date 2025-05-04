@@ -1,13 +1,11 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Nav } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
 import { FiUsers, FiFileText, FiMessageSquare, FiCalendar, FiSettings, FiLogOut } from 'react-icons/fi';
 import axios from 'axios';
 import './Dashboard.css';
-import config from '../../config';
-import Calendar from './Calendar'; 
-
 
 interface Project {
   id: number;
@@ -47,33 +45,38 @@ const Dashboard: React.FC = () => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-          const projectResponse = await axios.get(`${config.API_URL}/api/createproject/projects`, {
+        // Fetch real projects from API
+        const projectResponse = await axios.get('http://localhost:8081/api/projects/user', {
           withCredentials: true
-         });
+        });
         
-         if (projectResponse.data) {
-           setProjects(projectResponse.data);
-         } else {
-           console.error('Failed to load projects:', projectResponse.data.message);
-         }
-        try {
-          const userId = user?.id;
-          const response = await axios.get(`${config.API_URL}/api/notifications?user=${userId}`);
-          const dbNotifications = Array.isArray(response.data)
-            ? response.data.map((notif) => ({
-                id: notif._id,
-                message: notif.message,
-                type: notif.type || 'info',
-                date: new Date(notif.date || notif.createdAt).toISOString().split('T')[0]
-              }))
-            : [];
-
-          setNotifications(dbNotifications);
-
-        } catch (error) {
-          console.error('Error fetching notifications:', error);
-          setError('Error connecting to notifications API');
+        if (projectResponse.data.success) {
+          setProjects(projectResponse.data.projects);
+        } else {
+          setError(`Failed to load projects: ${projectResponse.data.message}`);
         }
+
+        // For now, still using mock notifications
+        setNotifications([
+          {
+            id: '1',
+            message: 'Dr. Smith commented on your research proposal',
+            type: 'info',
+            date: '2025-04-19'
+          },
+          {
+            id: '2',
+            message: 'New collaboration request from MIT Research Group',
+            type: 'success',
+            date: '2025-04-18'
+          },
+          {
+            id: '3',
+            message: 'Grant application deadline in 3 days',
+            type: 'warning',
+            date: '2025-04-17'
+          }
+        ]);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         setError('Error connecting to server');
@@ -85,9 +88,15 @@ const Dashboard: React.FC = () => {
     fetchDashboardData();
   }, []);
 
-  const handleLogout = () => {
-    logout(); 
-    navigate('/login'); 
+  const handleLogout = async () => {
+    try {
+      await axios.post('http://localhost:8081/logout', {}, { withCredentials: true });
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      setError('Logout failed. Please try again.');
+    }
   };
 
   const getStatusBadgeVariant = (project: Project) => {
@@ -96,13 +105,6 @@ const Dashboard: React.FC = () => {
     } else {
       return 'primary';
     }
-  };
-
-  const getDashboardTitle = () => {
-    const role = user?.role;
-    if (role === 'Researcher') return 'Researcher Dashboard';
-    if (role === 'Reviewer') return 'Reviewer Dashboard';
-    if (role === 'Admin') return 'Admin Dashboard';
   };
 
   const getNotificationVariant = (type: string) => {
@@ -245,7 +247,7 @@ const Dashboard: React.FC = () => {
       {/* Main content */}
       <div className="dashboard-content">
         <div className="dashboard-header">
-          <h2>{getDashboardTitle()}</h2>
+          <h2>Research Dashboard</h2>
           <div>
             <Link to="/projects/create">
               <Button variant="primary" className="me-2">New Project</Button>
@@ -418,65 +420,6 @@ const Dashboard: React.FC = () => {
           </Container>
         )}
 
-{activeTab === 'calendar' && (
-          <Container fluid>
-            <Row className="mb-4">
-              <Col>
-                <h4 className="mb-3">Collaborator Project Calendar</h4>
-                <p className="text-muted">
-                  View all your research projects with their start and end dates. Easily keep track of important milestones.
-                </p>
-              </Col>
-            </Row>
-            <Row>
-              <Col>
-                <Calendar projects={projects} />
-              </Col>
-            </Row>
-            <Row className="mt-4">
-              <Col md={6}>
-                <Card>
-                  <Card.Body>
-                    <h5>Upcoming Deadlines</h5>
-                    <div className="calendar-deadlines">
-                      {upcomingDeadlines.map(project => {
-                        const date = formatDeadlineDate(project.end_date);
-                        const isPastDeadline = new Date(project.end_date) < new Date();
-                        
-                        return (
-                          <div className="deadline-item" key={project.id}>
-                            <div className={`deadline-date ${isPastDeadline ? 'text-muted' : ''}`}>
-                              <span className="day">{date.day}</span>
-                              <span className="month">{date.month}</span>
-                            </div>
-                            <div className="deadline-info">
-                              <h6>{project.title}</h6>
-                              <p className="mb-0 text-muted small">
-                                {isPastDeadline ? 'Completed' : project.institution || project.research_area}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-              <Col md={6}>
-                <Card>
-                  <Card.Body>
-                    <h5>Project Timeline</h5>
-                    <p className="text-muted">View your project timeline and manage deadlines effectively.</p>
-                    <Button variant="primary" onClick={() => navigate('/projects')}>
-                      Manage Projects
-                    </Button>
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
-          </Container>
-        )}
-        
         {activeTab !== 'overview' && (
           <div className="text-center py-5">
             <h3>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h3>

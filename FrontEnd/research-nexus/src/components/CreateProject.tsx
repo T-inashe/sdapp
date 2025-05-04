@@ -1,51 +1,35 @@
-import  { useState, FormEvent, ChangeEvent, JSX } from 'react';
-import React, { useContext} from 'react';
-import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
+import React, { useState } from 'react';
+import { Container, Row, Col, Form, Button, Card, Spinner } from 'react-bootstrap';
 import axios from 'axios';
-import AuthContext from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import config from '../config';
 
-interface ProjectFormData {
-  creator?: string;
-  title: string;
-  description: string;
-  research_goals: string;
-  research_area: string;
-  start_date: string;
-  end_date: string;
-  funding_available: boolean;
-  funding_amount: string;
-  collaborators_needed: boolean;
-  collaborator_roles: string;
-  institution: string;
-  contact_email: string;
-}
+type CreateProjectResponse = {
+  success: boolean;
+  message?: string;
+};
 
-function CreateProject(): JSX.Element {
+function CreateProject() {
   const navigate = useNavigate();
-  const { user, logout } = useContext(AuthContext);
-  const [formData, setFormData] = useState<ProjectFormData>({
-    creator:'',
+  const [formData, setFormData] = useState({
     title: '',
     description: '',
-    research_goals: '',
-    research_area: '',
-    start_date: '',
-    end_date: '',
-    funding_available: false,
-    funding_amount: '',
-    collaborators_needed: false,
-    collaborator_roles: '',
+    researchGoals: '',
+    researchArea: '',
+    startDate: '',
+    endDate: '',
+    fundingAvailable: false,
+    fundingAmount: '',
+    collaboratorsNeeded: false,
+    collaboratorRoles: '',
     institution: '',
-    contact_email: ''
+    contactEmail: ''
   });
 
-  const [validated, setValidated] = useState<boolean>(false);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
+  const [validated, setValidated] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const research_areas: string[] = [
+  const researchAreas = [
     'Artificial Intelligence',
     'Data Science',
     'Machine Learning',
@@ -63,22 +47,44 @@ function CreateProject(): JSX.Element {
     'Other'
   ];
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-    setFormData({
-      ...formData,
-      creator: user?.id || '',
-      [name]: type === 'checkbox' ? checked : value
-    });
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const target = e.target;
+    const value = target.type === 'checkbox'
+      ? (target as HTMLInputElement).checked
+      : target.value;
+    const name = target.name;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-    
+
     if (form.checkValidity() === false) {
       e.stopPropagation();
+      setValidated(true);
+      return;
+    }
+
+    // Conditional field validation
+    if (
+      (formData.fundingAvailable && (!formData.fundingAmount || Number(formData.fundingAmount) <= 0)) ||
+      (formData.collaboratorsNeeded && !formData.collaboratorRoles.trim())
+    ) {
+      setError('Please fill in all required fields for funding/collaborators.');
+      setValidated(true);
+      return;
+    }
+
+    // Date validation
+    if (new Date(formData.endDate) < new Date(formData.startDate)) {
+      setError('End date cannot be earlier than start date.');
       setValidated(true);
       return;
     }
@@ -86,20 +92,46 @@ function CreateProject(): JSX.Element {
     setIsSubmitting(true);
     setError('');
 
-    console.log("Submitting Project Data:", formData);
-
+    const sanitizedData = {
+      ...formData,
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      researchGoals: formData.researchGoals.trim(),
+      researchArea: formData.researchArea.trim(),
+      institution: formData.institution.trim(),
+      contactEmail: formData.contactEmail.trim(),
+      fundingAmount: formData.fundingAvailable ? formData.fundingAmount : null,
+      collaboratorRoles: formData.collaboratorsNeeded ? formData.collaboratorRoles.trim() : null
+    };
 
     try {
-      const response = await axios.post(`${config.API_URL}/api/createproject/projects`, formData, {
-        withCredentials: true
-      });
-      console.log('Project data:', response.data)
-      navigate('/collaboratordashboard');
-    } catch (err) {
-      setError('Server error. Please try again later.');
+      const response = await axios.post<CreateProjectResponse>(
+        `${process.env.BACKEND_URL}/api/projects/create`,  // update API URL
+        sanitizedData,
+        { withCredentials: true }
+      );
+
+      if (response.data.success) {
+        navigate('/dashboard');
+      } else {
+        setError(response.data.message || 'Failed to create project');
+      }
+    } catch (err: any) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || 'Server error. Please try again later.');
+      } else {
+        setError('Unexpected error. Please try again.');
+      }
       console.error('Project creation error:', err);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    const isConfirmed = window.confirm('Are you sure you want to discard the changes?');
+    if (isConfirmed) {
+      navigate('/dashboard');
     }
   };
 
@@ -112,18 +144,30 @@ function CreateProject(): JSX.Element {
               <h2 className="mb-0">Create New Research Project</h2>
             </Card.Header>
             <Card.Body className="p-4">
-              {error && <div className="alert alert-danger">{error}</div>}
-              
+              {error && (
+                <div
+                  id="form-error"
+                  data-testid="form-error"
+                  className="alert alert-danger"
+                  role="alert"
+                  aria-live="assertive"
+                >
+                  {error}
+                </div>
+              )}
+
               <Form noValidate validated={validated} onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Project Title *</Form.Label>
+                  <Form.Label htmlFor="projectTitle">Project Title *</Form.Label>
                   <Form.Control
+                    id="projectTitle"
                     type="text"
                     name="title"
                     value={formData.title}
                     onChange={handleChange}
                     required
                     placeholder="Enter the title of your research project"
+                    isInvalid={validated && !formData.title}
                   />
                   <Form.Control.Feedback type="invalid">
                     Please provide a project title.
@@ -131,8 +175,9 @@ function CreateProject(): JSX.Element {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Description *</Form.Label>
+                  <Form.Label htmlFor="projectDescription">Description *</Form.Label>
                   <Form.Control
+                    id="projectDescription"
                     as="textarea"
                     rows={4}
                     name="description"
@@ -140,39 +185,48 @@ function CreateProject(): JSX.Element {
                     onChange={handleChange}
                     required
                     placeholder="Provide a comprehensive description of your research project"
+                    maxLength={1000}
+                    isInvalid={validated && !formData.description}
                   />
+                  <Form.Text muted>Max 1000 characters</Form.Text>
                   <Form.Control.Feedback type="invalid">
                     Please provide a project description.
                   </Form.Control.Feedback>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Research Goals *</Form.Label>
+                  <Form.Label htmlFor="researchGoals">Research Goals *</Form.Label>
                   <Form.Control
+                    id="researchGoals"
                     as="textarea"
                     rows={3}
-                    name="research_goals"
-                    value={formData.research_goals}
+                    name="researchGoals"
+                    value={formData.researchGoals}
                     onChange={handleChange}
                     required
                     placeholder="List the key research goals and objectives"
+                    maxLength={800}
+                    isInvalid={validated && !formData.researchGoals}
                   />
+                  <Form.Text muted>Max 800 characters</Form.Text>
                   <Form.Control.Feedback type="invalid">
                     Please provide research goals.
                   </Form.Control.Feedback>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Research Area *</Form.Label>
+                  <Form.Label htmlFor="researchArea">Research Area *</Form.Label>
                   <Form.Select
-                    name="research_area"
-                    value={formData.research_area}
+                    id="researchArea"
+                    name="researchArea"
+                    value={formData.researchArea}
                     onChange={handleChange}
                     required
+                    isInvalid={validated && !formData.researchArea}
                   >
                     <option value="">Select Research Area</option>
-                    {research_areas.map((area, index) => (
-                      <option key={index} value={area}>{area}</option>
+                    {researchAreas.map((area) => (
+                      <option key={area} value={area}>{area}</option>
                     ))}
                   </Form.Select>
                   <Form.Control.Feedback type="invalid">
@@ -183,13 +237,15 @@ function CreateProject(): JSX.Element {
                 <Row>
                   <Col md={6}>
                     <Form.Group className="mb-3">
-                      <Form.Label>Start Date *</Form.Label>
+                      <Form.Label htmlFor="startDate">Start Date *</Form.Label>
                       <Form.Control
+                        id="startDate"
                         type="date"
-                        name="start_date"
-                        value={formData.start_date}
+                        name="startDate"
+                        value={formData.startDate}
                         onChange={handleChange}
                         required
+                        isInvalid={validated && !formData.startDate}
                       />
                       <Form.Control.Feedback type="invalid">
                         Please select a start date.
@@ -198,13 +254,15 @@ function CreateProject(): JSX.Element {
                   </Col>
                   <Col md={6}>
                     <Form.Group className="mb-3">
-                      <Form.Label>End Date *</Form.Label>
+                      <Form.Label htmlFor="endDate">End Date *</Form.Label>
                       <Form.Control
+                        id="endDate"
                         type="date"
-                        name="end_date"
-                        value={formData.end_date}
+                        name="endDate"
+                        value={formData.endDate}
                         onChange={handleChange}
                         required
+                        isInvalid={validated && !formData.endDate}
                       />
                       <Form.Control.Feedback type="invalid">
                         Please select an end date.
@@ -215,54 +273,71 @@ function CreateProject(): JSX.Element {
 
                 <Form.Group className="mb-3">
                   <Form.Check
+                    id="fundingAvailable"
                     type="checkbox"
                     label="Funding Available"
-                    name="funding_available"
-                    checked={formData.funding_available}
+                    name="fundingAvailable"
+                    checked={formData.fundingAvailable}
                     onChange={handleChange}
                   />
                 </Form.Group>
 
-                {formData.funding_available && (
+                {formData.fundingAvailable && (
                   <Form.Group className="mb-3">
-                    <Form.Label>Funding Amount ($)</Form.Label>
+                    <Form.Label htmlFor="fundingAmount">Funding Amount ($)</Form.Label>
                     <Form.Control
+                      id="fundingAmount"
                       type="number"
-                      name="funding_amount"
-                      value={formData.funding_amount}
+                      name="fundingAmount"
+                      value={formData.fundingAmount}
                       onChange={handleChange}
+                      required={formData.fundingAvailable}
+                      isInvalid={validated && formData.fundingAvailable && !formData.fundingAmount}
+                      min="0"
                       placeholder="Enter the available funding amount"
+                      aria-required="true"
                     />
+                    <Form.Control.Feedback type="invalid">
+                      Please enter a valid funding amount.
+                    </Form.Control.Feedback>
                   </Form.Group>
                 )}
 
                 <Form.Group className="mb-3">
                   <Form.Check
+                    id="collaboratorsNeeded"
                     type="checkbox"
                     label="Seeking Collaborators"
-                    name="collaborators_needed"
-                    checked={formData.collaborators_needed}
+                    name="collaboratorsNeeded"
+                    checked={formData.collaboratorsNeeded}
                     onChange={handleChange}
                   />
                 </Form.Group>
 
-                {formData.collaborators_needed && (
+                {formData.collaboratorsNeeded && (
                   <Form.Group className="mb-3">
-                    <Form.Label>Collaborator Roles Needed</Form.Label>
+                    <Form.Label htmlFor="collaboratorRoles">Collaborator Roles Needed</Form.Label>
                     <Form.Control
+                      id="collaboratorRoles"
                       as="textarea"
                       rows={2}
-                      name="collaborator_roles"
-                      value={formData.collaborator_roles}
+                      name="collaboratorRoles"
+                      value={formData.collaboratorRoles}
                       onChange={handleChange}
                       placeholder="Describe the roles and expertise you're looking for"
+                      required={formData.collaboratorsNeeded}
+                      isInvalid={validated && formData.collaboratorsNeeded && !formData.collaboratorRoles}
                     />
+                    <Form.Control.Feedback type="invalid">
+                      Please specify the roles needed for collaboration.
+                    </Form.Control.Feedback>
                   </Form.Group>
                 )}
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Institution/University</Form.Label>
+                  <Form.Label htmlFor="institution">Institution/University</Form.Label>
                   <Form.Control
+                    id="institution"
                     type="text"
                     name="institution"
                     value={formData.institution}
@@ -272,29 +347,38 @@ function CreateProject(): JSX.Element {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Contact Email</Form.Label>
+                  <Form.Label htmlFor="contactEmail">Contact Email</Form.Label>
                   <Form.Control
+                    id="contactEmail"
                     type="email"
-                    name="contact_email"
-                    value={formData.contact_email}
+                    name="contactEmail"
+                    value={formData.contactEmail}
                     onChange={handleChange}
                     placeholder="Email for project inquiries"
+                    required
+                    isInvalid={validated && !formData.contactEmail}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    Please enter a valid contact email.
+                  </Form.Control.Feedback>
                 </Form.Group>
 
                 <div className="d-grid gap-2 mt-4">
-                  <Button 
-                    type="submit" 
-                    variant="primary" 
-                    size="lg"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? 'Creating Project...' : 'Create Project'}
+                  <Button type="submit" variant="primary" size="lg" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />{' '}
+                        Creating Project...
+                      </>
+                    ) : (
+                      'Create Project'
+                    )}
                   </Button>
-                  <Button 
+                  <Button
+                    type="button"
                     variant="outline-secondary"
                     size="lg"
-                    onClick={() => navigate('/dashboard')}
+                    onClick={handleCancel}
                   >
                     Cancel
                   </Button>

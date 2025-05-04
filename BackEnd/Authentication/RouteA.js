@@ -24,8 +24,17 @@ router.get(
         return res.redirect(`http://localhost:5173/signup?userId=${userId}&message=You%20need%20to%20create%20an%20account%20before%20you%20log%20in.`);
       }
 
-      res.redirect(`http://localhost:5173/admindashboard?token=${token}`)
-      
+      if(role ==="Researcher"){
+      return res.redirect(`http://localhost:5173/collaboratordashboard?token=${token}`)
+      }
+
+      if(role ==="Admin"){
+        return res.redirect(`http://localhost:5173/admindashboard?token=${token}`)
+        }
+
+      if(role ==="Reviewer"){
+      return res.redirect(`http://localhost:5173/reviewerdashboard?token=${token}`)
+      }
     }
      catch (error) {
       console.error("Error during Google OAuth callback:", error);

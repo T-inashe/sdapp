@@ -89,6 +89,6 @@ describe('Calendar Component', () => {
     // Look through matches and check if any has 'today' class
     const matched = elements.some(el => el.closest('.calendar-day')?.classList.contains('today'));
 
-    expect(matched).toBe(false);
+    expect(matched).toBe(true);
   });
 });

@@ -1,4 +1,5 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Nav, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
@@ -9,7 +10,7 @@ import Calendar from './Calendar';
 import MessagePage from '../../pages/Messages';
 import config from '../../config';
 
-interface Project {
+ export interface Project {
   _id: number;
   creator_email: string;
   title: string;
@@ -30,14 +31,14 @@ interface Project {
 }
 
 
-interface Notification {
+export interface Notification {
   id: string;
   message: string;
   type: 'info' | 'success' | 'warning';
   date: string;
 }
 
-interface Opportunity {
+export interface Opportunity {
   id: number;
   title: string;
   research_area: string;
@@ -613,8 +614,8 @@ const CollaboratorDashboard: React.FC = () => {
                       <Row>
                         <Col md={4}>
                           <div className="mb-3">
-                            <label className="form-label">Research Area</label>
-                            <select className="form-select">
+                            <label htmlFor="researchArea" className="form-label">Research Area</label>
+                            <select id="researchArea" className="form-select">
                               <option value="">All Areas</option>
                               <option>Machine Learning</option>
                               <option>Environmental Science</option>
@@ -626,8 +627,8 @@ const CollaboratorDashboard: React.FC = () => {
                         </Col>
                         <Col md={4}>
                           <div className="mb-3">
-                            <label className="form-label">Institution</label>
-                            <select className="form-select">
+                            <label htmlFor="instituition" className="form-label">Institution</label>
+                            <select id="instituition" className="form-select">
                               <option value="">All Institutions</option>
                               <option>Stanford University</option>
                               <option>MIT</option>
@@ -638,8 +639,8 @@ const CollaboratorDashboard: React.FC = () => {
                         </Col>
                         <Col md={4}>
                           <div className="mb-3">
-                            <label className="form-label">Skills Match</label>
-                            <select className="form-select">
+                            <label htmlFor="skillsMatch" className="form-label">Skills Match</label>
+                            <select id="skillsMatch" className="form-select">
                               <option value="">Any Match</option>
                               <option>High Match (80%+)</option>
                               <option>Medium Match (50-79%)</option>

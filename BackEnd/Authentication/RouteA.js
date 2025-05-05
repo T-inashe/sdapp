@@ -6,7 +6,7 @@ import User from '../Api/Models/User.js';
 const router = express.Router();
 
 // Get frontend URL from environment variable or use default for local development
-const FRONTEND_URL = 'https://purple-ocean-0c2212e1e.6.azurestaticapps.net';
+const FRONTEND_URL = 'ttps://purple-ocean-0c2212e1e.6.azurestaticapps.net';
 
 // Google OAuth login route
 router.get(

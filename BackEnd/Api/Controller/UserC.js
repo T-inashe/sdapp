@@ -18,6 +18,14 @@ export const createUser = async (payload, file) => {
     throw new Error(`Error creating user: ${error.message}`);
   }
 };
+export const getReviewers = async () => {
+  try {
+    const reviewers = await User.find({ role: 'Reviewer' });
+    return reviewers;
+  } catch (error) {
+    throw new Error(`Error fetching reviewers: ${error.message}`);
+  }
+};
 
 export const loginUser = async (email, password) => {
   try {

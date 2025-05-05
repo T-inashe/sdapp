@@ -2,6 +2,7 @@ import express from 'express';
 import {
   deleteUserById,
   getAllUsers,
+  getReviewers,
   getUserById,
   modifyUser,
   createUser,
@@ -16,6 +17,15 @@ router.get('/', async (req, res) => {
     const users = await getAllUsers();
     res.status(200).json(users); 
 
+});
+
+router.get('/reviewer', async (req, res) => {
+  try {
+    const reviewers = await getReviewers();
+    res.status(200).json(reviewers);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching reviewers', error: error.message });
+  }
 });
 
 

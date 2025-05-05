@@ -15,6 +15,7 @@ jobs:
         working-directory: FrontEnd/research-nexus
 
     steps:
+
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -28,3 +29,10 @@ jobs:
 
       - name: Run tests
         run: npm test -- --watchAll=false
+
+      - name: Run test coverage
+        run: npm run test:coverage
+
+    
+
+        

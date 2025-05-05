@@ -11,6 +11,7 @@ import MessagesPage from './pages/Messages';
 import Collaborators from './components/Collaborators';
 import ResearchCollabLanding from './pages/ResearchCollabLanding';
 import './App.css';
+import ApplyPage from './components/BeCollaborator'
 import CreateProject from './components/CreateProject';
 import UserProjects from './components/UserProjects';
 import EditProject from './components/EditProject';
@@ -45,6 +46,7 @@ const App: React.FC = () => {
           <Route path="/reviewerdashboard" element={<ReviewerDashboard />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/Collaborators/:id" element={<Collaborators />} />
+          <Route path="/apply/:id" element={<ApplyPage />} />
           <Route path="/chat/:id" element={<ChatPage />} />
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/projects/create" element={<CreateProject />} />

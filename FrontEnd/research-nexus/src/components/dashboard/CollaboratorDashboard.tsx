@@ -1,8 +1,8 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { Container, Row, Col, Card, Button, Badge, Nav, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Badge, Nav, Alert, Form } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
-import { FiUsers, FiFileText, FiMessageSquare, FiCalendar, FiSettings, FiLogOut, FiSearch, FiBriefcase } from 'react-icons/fi';
+import { FiUsers, FiFileText, FiMessageSquare, FiCalendar, FiSettings, FiLogOut, FiSearch, FiBriefcase, } from 'react-icons/fi';
 import axios from 'axios';
 import './Dashboard.css';
 import Calendar from './Calendar'; 
@@ -11,7 +11,7 @@ import config from '../../config';
 
 interface Project {
   _id: number;
-  creator_email: string;
+  creator: { _id: string; fname: string; lname: string; role: string };
   title: string;
   description: string;
   research_goals: string;
@@ -47,6 +47,27 @@ interface Opportunity {
   matchScore: number;
 }
 
+interface User {
+  _id: string;
+  fname: string;
+  lname: string;
+  avatar?: string;
+  academicRole: string;
+  department: string;
+  researchExperience: string;
+  researcharea: string;
+}
+interface ExternalOpportunities {
+  id: number;
+  title: string;
+  research_area: string;
+  institution: string;
+  deadline: string;
+  skills_needed: string[];
+  matchScore: number;
+  creator: string;
+}
+
 const CollaboratorDashboard: React.FC = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -54,6 +75,8 @@ const CollaboratorDashboard: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [searchText, setSearchText] = useState<string>('');
+  const [externalOpportunities, setExternalOpportunities] = useState<ExternalOpportunities[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
@@ -80,6 +103,49 @@ const CollaboratorDashboard: React.FC = () => {
     } catch (err) {
       console.error("Failed to fetch projects:", err);
     }
+  };
+    
+  const fetchExternalOpportunities = async () => {
+    try {
+      const response = await axios.get(`${config.API_URL}/api/createproject/projects`, {
+        withCredentials: true
+      });
+      const data: Project[] = response.data;
+  
+      const filtered = data
+        .filter(project => project.creator._id !== user?.id) // Exclude own
+        .map(project => ({
+          id: project._id,
+          title: project.title,
+          research_area: project.research_area,
+          institution: project.institution || "Unknown Institution",
+          deadline: project.end_date,
+          skills_needed: project.collaborator_roles
+            ? project.collaborator_roles.split(',').map(skill => skill.trim())
+            : [],
+          matchScore: Math.floor(Math.random() * 21) + 70,
+          creator:project.creator._id,
+        }));
+  
+      setExternalOpportunities(filtered);
+    } catch (err) {
+      console.error("Failed to fetch external opportunities:", err);
+    }
+  };
+  
+  const filteredExternalOpportunities = externalOpportunities.filter((opportunity) => {
+    const search = searchText.toLowerCase();
+    return (
+      opportunity.title.toLowerCase().includes(search) ||
+      opportunity.research_area.toLowerCase().includes(search) ||
+      opportunity.institution.toLowerCase().includes(search) ||
+      opportunity.skills_needed.some(skill => skill.toLowerCase().includes(search))||
+      opportunity.deadline.toLowerCase().includes(search)
+    );
+  });
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchText(e.target.value);
   };
   
   useEffect(() => {
@@ -126,8 +192,10 @@ const CollaboratorDashboard: React.FC = () => {
     };
     fetchOpportunities();
     fetchDashboardData();
+    fetchExternalOpportunities ();
   }, []);
 
+  
   const handleLogout = () => {
     logout(); 
     navigate('/login'); 
@@ -207,35 +275,6 @@ const CollaboratorDashboard: React.FC = () => {
         return 'dark';
     }
   };
-
-  const handleApply = async (opportunityId: number) => {
-    try {
-      console.log(`Applied to opportunity ${opportunityId}`);
-      const userId = user?.id;
-  
-      const response = await axios.post(`${config.API_URL}/api/notifications`, {
-        message: 'Application submitted successfully!',
-        user: userId,
-        type: 'success',
-        date: new Date().toISOString()
-      });
-  
-      // Add the new notification to the state immediately
-      const newNotif = response.data;
-      setNotifications((prev) => [
-        {
-          id: newNotif._id, 
-          message: newNotif.message,
-          type: newNotif.type,
-          date: new Date(newNotif.date || newNotif.createdAt).toISOString().split('T')[0]
-        },
-        ...prev
-      ]);
-    } catch (error) {
-      console.error('Error sending notification:', error);
-    }
-  };
-  
   
 
   if (isLoading) {
@@ -605,75 +644,40 @@ const CollaboratorDashboard: React.FC = () => {
         {activeTab === 'opportunities' && (
           <Container fluid>
             <Row className="mb-4">
-              <Col>
-                <Card>
-                  <Card.Body>
-                    <h4>Find Research Opportunities</h4>
-                    <div className="search-filters mb-4">
-                      <Row>
-                        <Col md={4}>
-                          <div className="mb-3">
-                            <label className="form-label">Research Area</label>
-                            <select className="form-select">
-                              <option value="">All Areas</option>
-                              <option>Machine Learning</option>
-                              <option>Environmental Science</option>
-                              <option>Computer Science</option>
-                              <option>Neuroscience</option>
-                              <option>Physics</option>
-                            </select>
-                          </div>
-                        </Col>
-                        <Col md={4}>
-                          <div className="mb-3">
-                            <label className="form-label">Institution</label>
-                            <select className="form-select">
-                              <option value="">All Institutions</option>
-                              <option>Stanford University</option>
-                              <option>MIT</option>
-                              <option>Cambridge University</option>
-                              <option>Harvard Medical School</option>
-                            </select>
-                          </div>
-                        </Col>
-                        <Col md={4}>
-                          <div className="mb-3">
-                            <label className="form-label">Skills Match</label>
-                            <select className="form-select">
-                              <option value="">Any Match</option>
-                              <option>High Match (80%+)</option>
-                              <option>Medium Match (50-79%)</option>
-                              <option>Low Match (Below 50%)</option>
-                            </select>
-                          </div>
-                        </Col>
-                      </Row>
-                      <Button variant="primary">Apply Filters</Button>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
+        <Col>
+          <Card>
+            <Card.Body>
+              <h4>Find Researchers</h4>
+              <Form.Control
+                type="text"
+                placeholder="Search by name, department, research area, or research experience"
+                value={searchText}
+                onChange={handleSearchChange}
+              />
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
           
             <Row>
               <Col>
-                <h4>{opportunities.length} Opportunities Found</h4>
-                {opportunities.map((opportunity) => (
-                  <Card key={opportunity.id} className="mb-3 opportunity-card">
+                <h4>{filteredExternalOpportunities.length} Opportunities Found</h4>
+                {filteredExternalOpportunities.map((externalOpportunities) => (
+                  <Card key={externalOpportunities.id} className="mb-3 opportunity-card">
                     <Card.Body>
                       <div className="d-flex justify-content-between align-items-start mb-3">
                         <div>
                           <div className="mb-2">
-                            <Badge bg="primary" className="me-2">{opportunity.research_area}</Badge>
-                            <Badge bg="success">Match Score: {opportunity.matchScore}%</Badge>
+                            <Badge bg="primary" className="me-2">{externalOpportunities.research_area}</Badge>
+                            <Badge bg="success">Match Score: {externalOpportunities.matchScore}%</Badge>
                           </div>
-                          <h5>{opportunity.title}</h5>
-                          <p className="text-muted mb-0">{opportunity.institution}</p>
+                          <h5>{externalOpportunities.title}</h5>
+                          <p className="text-muted mb-0">{externalOpportunities.institution}</p>
                         </div>
                         <div className="deadline-badge">
                           <div className="deadline-date">
                             <small>Deadline</small>
-                            <strong>{formatDate(opportunity.deadline)}</strong>
+                            <strong>{formatDate(externalOpportunities.deadline)}</strong>
                           </div>
                         </div>
                       </div>
@@ -681,7 +685,7 @@ const CollaboratorDashboard: React.FC = () => {
                       <div className="skills-needed mt-3">
                         <small className="text-muted">Skills Needed:</small>
                         <div className="mt-1">
-                          {opportunity.skills_needed.map((skill, index) => (
+                          {externalOpportunities.skills_needed.map((skill, index) => (
                             <Badge bg="light" text="dark" className="me-2 mb-2" key={index}>
                               {skill}
                             </Badge>
@@ -694,7 +698,7 @@ const CollaboratorDashboard: React.FC = () => {
                           variant="primary" 
                           size="sm" 
                           className="me-2"
-                          onClick={() => handleApply(opportunity.id)}
+                          onClick={() => navigate(`/apply/${externalOpportunities.id}`)}
                         >
                           Apply Now
                         </Button>
@@ -842,7 +846,7 @@ const CollaboratorDashboard: React.FC = () => {
                   <Card.Body>
                     <h5>Project Timeline</h5>
                     <p className="text-muted">View your project timeline and manage deadlines effectively.</p>
-                    <Button variant="primary" onClick={() => navigate('/projects')}>
+                    <Button variant="primary" onClick={() => setActiveTab('projects')}>
                       Manage Projects
                     </Button>
                   </Card.Body>

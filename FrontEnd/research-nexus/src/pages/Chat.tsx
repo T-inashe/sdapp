@@ -141,7 +141,11 @@ const ChatPage: React.FC<ChatPageProps> = ({ setActiveTab }) => {
 
               {/* Show read/delivered only for messages sent by this user */}
               {msg.sender._id === user?.id && (
-                <span className="read-status">
+                <span 
+                  className="read-status" 
+                  data-testid={`read-status-${msg._id}`}
+                  data-read={msg.read ? 'true' : 'false'}
+                >
                   {msg.read ? '✔️✔️' : '✔️'}
                 </span>
               )}

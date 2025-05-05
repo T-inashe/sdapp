@@ -210,7 +210,7 @@ const MessageInvitesPage: React.FC = () => {
     navigate(`/chat/${message.projectId}`);
   };
 
-  if (loading) return <div className="messages-spinner"><Spinner animation="border" /></div>;
+  if (loading) return <div className="messages-spinner" role="status"><Spinner animation="border" /></div>;
 
   return (
     <Container className="messages-container">

@@ -161,10 +161,10 @@ const Calendar: React.FC<CalendarProps> = ({ projects }) => {
             <Button variant="outline-secondary" size="sm" onClick={goToToday} className="me-2">
               Today
             </Button>
-            <Button variant="outline-primary" size="sm" onClick={goToPreviousMonth} className="me-1">
+            <Button variant="outline-primary" size="sm" onClick={goToPreviousMonth} className="me-1" aria-label="Previous month">
               <FiChevronLeft />
             </Button>
-            <Button variant="outline-primary" size="sm" onClick={goToNextMonth}>
+            <Button variant="outline-primary" size="sm" onClick={goToNextMonth} aria-label="Next month">
               <FiChevronRight />
             </Button>
           </div>

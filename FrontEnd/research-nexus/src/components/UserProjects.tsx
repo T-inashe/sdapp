@@ -30,7 +30,7 @@ function UserProjects(): JSX.Element {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await axios.get('`${config.API_URL}`/api/projects/user', {
+        const response = await axios.get(`${config.API_URL}/api/projects/user`, {
           withCredentials: true
         });
         

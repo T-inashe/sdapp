@@ -1,0 +1,137 @@
+/* AdminDashboard.css */
+
+/* Dashboard layout */
+.dashboard-container {
+    display: flex;
+    min-height: 100vh;
+  }
+  
+  .dashboard-sidebar {
+    width: 260px;
+    background-color: #f8f9fa;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  
+  .dashboard-content {
+    flex: 1;
+    margin-left: 260px;
+    padding: 20px;
+    background-color: #f9fafb;
+    min-height: 100vh;
+  }
+  
+  /* Sidebar styling */
+  .sidebar-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .sidebar-header h3 {
+    margin: 0;
+    color: #2563eb;
+  }
+  
+  .user-profile {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .avatar-container {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e2e8f0;
+  }
+  
+  .avatar-placeholder {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #64748b;
+  }
+  
+  .user-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .sidebar-nav .nav-link {
+    padding: 0.75rem 1.5rem;
+    color: #4b5563;
+    transition: background-color 0.2s ease;
+  }
+  
+  .sidebar-nav .nav-link:hover {
+    background-color: #e2e8f0;
+    color: #1e3a8a;
+  }
+  
+  .sidebar-nav .nav-link.active {
+    background-color: #e2e8f0;
+    color: #2563eb;
+    font-weight: 500;
+  }
+  
+  /* Dashboard header */
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+  
+  /* Table styling */
+  table.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #4b5563;
+  }
+  
+  /* Card styling */
+  .card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: none;
+    margin-bottom: 1.5rem;
+  }
+  
+  .card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  /* Reviewer selection list */
+  .reviewer-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 5px;
+  }
+  
+  .reviewer-list .card:hover {
+    background-color: #f9fafb;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .dashboard-sidebar {
+      width: 100%;
+      position: relative;
+      height: auto;
+    }
+    
+    .dashboard-content {
+      margin-left: 0;
+    }
+    
+    .dashboard-container {
+      flex-direction: column;
+    }
+  }

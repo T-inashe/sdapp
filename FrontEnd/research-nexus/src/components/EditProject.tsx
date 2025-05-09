@@ -1,48 +1,66 @@
 import { useState, useEffect, FormEvent, ChangeEvent, JSX } from 'react';
 import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
+import React, { useContext} from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import config from '../config';
+import AuthContext from '../context/AuthContext';
 
 interface ProjectFormData {
+  _id:string
+  creator?: string;
   title: string;
   description: string;
-  researchGoals: string;
-  researchArea: string;
-  startDate: string;
-  endDate: string;
-  fundingAvailable: boolean;
-  fundingAmount: string;
-  collaboratorsNeeded: boolean;
-  collaboratorRoles: string;
+  research_goals: string;
+  research_area: string;
+  start_date: string;
+  end_date: string;
+  funding_available: boolean;
+  funding_amount: string;
+  collaborators_needed: boolean;
+  collaborator_roles: string;
   institution: string;
-  contactEmail: string;
+  contact_email: string;
+  file: {
+    data: "base64-string",
+    contentType: "application/pdf",
+    originalName: "proposal.pdf"
+  } 
 }
 
 function EditProject(): JSX.Element {
   const navigate = useNavigate();
+  const { user, logout } = useContext(AuthContext);
   const { id } = useParams<{ id: string }>();
   const [formData, setFormData] = useState<ProjectFormData>({
-    title: '',
-    description: '',
-    researchGoals: '',
-    researchArea: '',
-    startDate: '',
-    endDate: '',
-    fundingAvailable: false,
-    fundingAmount: '',
-    collaboratorsNeeded: false,
-    collaboratorRoles: '',
-    institution: '',
-    contactEmail: ''
-  });
-
+    _id:'',
+     creator:'',
+     title: '',
+     description: '',
+     research_goals: '',
+     research_area: '',
+     start_date: '',
+     end_date: '',
+     funding_available: false,
+     funding_amount: '',
+     collaborators_needed: false,
+     collaborator_roles: '',
+     institution: '',
+     contact_email: '',
+     file: {
+      data: "base64-string",
+      contentType: "application/pdf",
+      originalName: "proposal.pdf"
+    } 
+   });
+   
   const [validated, setValidated] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
+  const [file, setFile] = useState<File | null>(null);
 
-  const researchAreas: string[] = [
+  const research_areas: string[] = [
     'Artificial Intelligence',
     'Data Science',
     'Machine Learning',
@@ -64,27 +82,33 @@ function EditProject(): JSX.Element {
     const fetchProjectData = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`${config.API_URL}/api/projects/${id}`, {
+        const response = await axios.get(`${config.API_URL}/api/createproject/projects/${id}`, {
           withCredentials: true
         });
-        
-        if (response.data.success) {
-          const projectData = response.data.project;
+        if (response.data) {
+          const projectData = response.data;
           
           // Convert from snake_case database fields to camelCase used in the form
           setFormData({
+            _id:projectData._id,
             title: projectData.title,
             description: projectData.description,
-            researchGoals: projectData.research_goals,
-            researchArea: projectData.research_area,
-            startDate: formatDateForInput(projectData.start_date),
-            endDate: formatDateForInput(projectData.end_date),
-            fundingAvailable: projectData.funding_available,
-            fundingAmount: projectData.funding_amount || '',
-            collaboratorsNeeded: projectData.collaborators_needed,
-            collaboratorRoles: projectData.collaborator_roles || '',
+            research_goals: projectData.research_goals,
+            research_area: projectData.research_area,
+            start_date: formatDateForInput(projectData.start_date),
+            end_date: formatDateForInput(projectData.end_date),
+            funding_available: projectData.funding_available,
+            funding_amount: projectData.funding_amount || '',
+            collaborators_needed: projectData.collaborators_needed,
+            collaborator_roles: projectData.collaborator_roles || '',
             institution: projectData.institution || '',
-            contactEmail: projectData.contact_email
+            contact_email: projectData.contact_email,
+            file: {
+              data: projectData.file.data,
+              contentType: projectData.file.contentType,
+              originalName: projectData.file.originalName
+            } 
+
           });
         } else {
           setError(response.data.message || 'Failed to load project data');
@@ -112,6 +136,7 @@ function EditProject(): JSX.Element {
     
     setFormData({
       ...formData,
+      creator: user?.id || '',
       [name]: type === 'checkbox' ? checked : value
     });
   };
@@ -129,15 +154,16 @@ function EditProject(): JSX.Element {
     setIsSubmitting(true);
     setError('');
 
+    console.log(formData)
     try {
-      const response = await axios.put(`${config.API_URL}/api/projects/${id}/update`, formData, {
+      const response = await axios.put(`${config.API_URL}/api/createproject/projects/${id}`, formData, {
         withCredentials: true
       });
-      
-      if (response.data.success) {
+      console.log(response.data)
+      if (response.data) {
         navigate(`/projects/${id}`);
       } else {
-        setError(response.data.message || 'Failed to update project');
+        setError(response.data || 'Failed to update project');
       }
     } catch (err) {
       setError('Server error. Please try again later.');
@@ -208,8 +234,8 @@ function EditProject(): JSX.Element {
                   <Form.Control
                     as="textarea"
                     rows={3}
-                    name="researchGoals"
-                    value={formData.researchGoals}
+                    name="research_goals"
+                    value={formData. research_goals}
                     onChange={handleChange}
                     required
                     placeholder="List the key research goals and objectives"
@@ -217,18 +243,30 @@ function EditProject(): JSX.Element {
                   <Form.Control.Feedback type="invalid">
                     Please provide research goals.
                   </Form.Control.Feedback>
+                </Form.Group>   
+                  <Form.Label>Current File:</Form.Label>
+                  <a href={`${config.API_URL}/api/createproject/${formData._id}/download/`} download>
+                        Download {formData.file.originalName}
+                        </a>  
+                          
+                 <Form.Group className="mb-3">
+                  <Form.Label>Upload Project Image/File *</Form.Label>
+                  <Form.Control 
+                    type="file" 
+                    accept="image/*,application/pdf" 
+                    onChange={handleChange}
+                  />
                 </Form.Group>
-
                 <Form.Group className="mb-3">
                   <Form.Label>Research Area *</Form.Label>
                   <Form.Select
-name="researchArea"
-value={formData.researchArea}
+name="research_area"
+value={formData.research_area}
 onChange={handleChange}
 required
 >
 <option value="">Select Research Area</option>
-{researchAreas.map((area, index) => (
+{research_areas.map((area, index) => (
   <option key={index} value={area}>{area}</option>
 ))}
 </Form.Select>
@@ -243,8 +281,8 @@ Please select a research area.
   <Form.Label>Start Date *</Form.Label>
   <Form.Control
     type="date"
-    name="startDate"
-    value={formData.startDate}
+    name="start_date"
+    value={formData.start_date}
     onChange={handleChange}
     required
   />
@@ -258,8 +296,8 @@ Please select a research area.
   <Form.Label>End Date *</Form.Label>
   <Form.Control
     type="date"
-    name="endDate"
-    value={formData.endDate}
+    name="end_date"
+    value={formData.end_date}
     onChange={handleChange}
     required
   />
@@ -274,19 +312,19 @@ Please select a research area.
 <Form.Check
 type="checkbox"
 label="Funding Available"
-name="fundingAvailable"
-checked={formData.fundingAvailable}
+name="funding_available"
+checked={formData.funding_available}
 onChange={handleChange}
 />
 </Form.Group>
 
-{formData.fundingAvailable && (
+{formData.funding_available && (
 <Form.Group className="mb-3">
 <Form.Label>Funding Amount ($)</Form.Label>
 <Form.Control
   type="number"
-  name="fundingAmount"
-  value={formData.fundingAmount}
+  name="funding_amount"
+  value={formData.funding_amount}
   onChange={handleChange}
   placeholder="Enter the available funding amount"
 />
@@ -297,20 +335,20 @@ onChange={handleChange}
 <Form.Check
 type="checkbox"
 label="Seeking Collaborators"
-name="collaboratorsNeeded"
-checked={formData.collaboratorsNeeded}
+name="collaborators_needed"
+checked={formData.collaborators_needed}
 onChange={handleChange}
 />
 </Form.Group>
 
-{formData.collaboratorsNeeded && (
+{formData.collaborators_needed && (
 <Form.Group className="mb-3">
 <Form.Label>Collaborator Roles Needed</Form.Label>
 <Form.Control
   as="textarea"
   rows={2}
-  name="collaboratorRoles"
-  value={formData.collaboratorRoles}
+  name="collaborator_roles"
+  value={formData.collaborator_roles}
   onChange={handleChange}
   placeholder="Describe the roles and expertise you're looking for"
 />
@@ -332,8 +370,8 @@ placeholder="Your affiliated institution"
 <Form.Label>Contact Email</Form.Label>
 <Form.Control
 type="email"
-name="contactEmail"
-value={formData.contactEmail}
+name="contact_email"
+value={formData.contact_email}
 onChange={handleChange}
 placeholder="Email for project inquiries"
 />

@@ -5,24 +5,32 @@ import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import Dashboard from './components/dashboard/Dashboard';
 import AuthContext from './context/AuthContext';
+import NotificationsPage from './pages/NotificationsPage';
+import ChatPage from './pages/Chat';
+import MessagesPage from './pages/Messages';
+import Collaborators from './components/Collaborators';
 import ResearchCollabLanding from './pages/ResearchCollabLanding';
 import './App.css';
+import ApplyPage from './components/BeCollaborator'
 import CreateProject from './components/CreateProject';
 import UserProjects from './components/UserProjects';
 import EditProject from './components/EditProject';
+import Signup from './components/auth/SignUp';
 import ProjectDetail from './components/ProjectDetails';
-import AuthSuccess from './components/auth/AuthSuccess';
+import CollaboratorDashboard from './components/dashboard/CollaboratorDashboard';
+import ReviewerDashboard from './components/dashboard/ReviewerDashboard';
+import AdminDashboard from './components/dashboard/AdminDashboard';
 
 // Protected route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useContext(AuthContext);
+// const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+//   const { isAuthenticated } = useContext(AuthContext);
   
-  if (!isAuthenticated) {
-    return <Navigate to="/ResearchCollabLanding" />;
-  }
+//   if (!isAuthenticated) {
+//     return <Navigate to="/ResearchCollabLanding" />;
+//   }
   
-  return <>{children}</>;
-};
+//   return <>{children}</>;
+// };
 
 const App: React.FC = () => {
   return (
@@ -30,18 +38,26 @@ const App: React.FC = () => {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<ResearchCollabLanding />} />
-          <Route path="/auth-success" element={<AuthSuccess />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/collaboratordashboard" element={<CollaboratorDashboard />} />
+          <Route path="/admindashboard" element={<AdminDashboard />} />
+          <Route path="/reviewerdashboard" element={<ReviewerDashboard />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/Collaborators/:id" element={<Collaborators />} />
+          <Route path="/apply/:id" element={<ApplyPage />} />
+          <Route path="/chat/:id" element={<ChatPage />} />
+          <Route path="/messages" element={<MessagesPage />} />
           <Route path="/projects/create" element={<CreateProject />} />
           <Route path="/projects" element={<UserProjects />} />
           {/* Routes for viewing and editing specific projects */}
           <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/projects/:id/edit" element={<EditProject />} />
           <Route path="/dashboard" element={
-            <ProtectedRoute>
+            // <ProtectedRoute>
               <Dashboard />
-            </ProtectedRoute>
+            // </ProtectedRoute>
           } />
 
         {/* Routes for viewing and editing specific projects */}

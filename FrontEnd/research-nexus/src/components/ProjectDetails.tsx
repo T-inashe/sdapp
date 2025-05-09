@@ -6,7 +6,7 @@ import { FiUsers, FiCalendar, FiDollarSign, FiArrowLeft, FiEdit } from 'react-ic
 import config from '../config';
 
 interface Project {
-  id: number;
+  _id: number;
   creator_email: string;
   title: string;
   description: string;
@@ -21,6 +21,11 @@ interface Project {
   institution: string | null;
   contact_email: string;
   created_at: string;
+  file: {
+    data: "base64-string",
+    contentType: "application/pdf",
+    originalName: "proposal.pdf"
+  } 
 }
 
 const ProjectDetail: React.FC = () => {
@@ -34,12 +39,12 @@ const ProjectDetail: React.FC = () => {
     const fetchProjectDetails = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`${config.API_URL}/api/projects/${id}`, {
+        const response = await axios.get(`${config.API_URL}/api/createproject/projects/${id}`, {
           withCredentials: true
         });
 
-        if (response.data.success) {
-          setProject(response.data.project);
+        if (response.data) {
+          setProject(response.data);
         } else {
           setError(response.data.message || 'Failed to load project details');
         }
@@ -61,6 +66,25 @@ const ProjectDetail: React.FC = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
+  const handleDelete = async () => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this project?");
+    if (!confirmDelete) return;
+  
+    try {
+      const response = await axios.delete(`${config.API_URL}/api/createproject/projects/${id}`, {
+        withCredentials: true
+      });
+  
+      if (response.status === 200 || response.data) {
+        navigate('/collaboratordashboard'); // Redirect to project list after deletion
+      } else {
+        setError(response.data.message || 'Failed to delete project');
+      }
+    } catch (err) {
+      setError('Server error while deleting. Please try again later.');
+      console.error('Project deletion error:', err);
+    }
+  };
   if (isLoading) {
     return (
       <Container className="py-5 text-center">
@@ -78,7 +102,7 @@ const ProjectDetail: React.FC = () => {
         <Alert variant="danger">
           {error || 'Project not found'}
         </Alert>
-        <Button variant="primary" onClick={() => navigate('/dashboard')}>
+        <Button variant="primary" onClick={() => navigate('/collaboratordashboard')}>
           <FiArrowLeft className="me-2" /> Back to Dashboard
         </Button>
       </Container>
@@ -88,7 +112,7 @@ const ProjectDetail: React.FC = () => {
   return (
     <Container className="py-5">
       <div className="mb-4 d-flex justify-content-between align-items-center">
-        <Button variant="link" className="text-decoration-none p-0" onClick={() => navigate('/dashboard')}>
+        <Button variant="link" className="text-decoration-none p-0" onClick={() => navigate('/collaboratordashboard')}>
           <FiArrowLeft className="me-2" /> Back to Dashboard
         </Button>
         <Link to={`/projects/${id}/edit`}>
@@ -110,6 +134,9 @@ const ProjectDetail: React.FC = () => {
             <Col md={6}>
               <h5>Project Overview</h5>
               <p>{project.description}</p>
+              <a href={`${config.API_URL}/api/createproject/${project._id}/download/`} download>
+                  Download {project.file.originalName}
+                  </a>  
             </Col>
             <Col md={6}>
               <Card className="bg-light">
@@ -167,7 +194,7 @@ const ProjectDetail: React.FC = () => {
             <div className="mb-4">
               <h5>Collaborator Roles Needed</h5>
               <p>{project.collaborator_roles}</p>
-              <Button variant="success">
+              <Button variant="success"  onClick={() => navigate(`/collaborators/${project._id}`)}>
                 <FiUsers className="me-2" /> Apply to Collaborate
               </Button>
             </div>
@@ -176,14 +203,17 @@ const ProjectDetail: React.FC = () => {
           <hr className="my-4" />
 
           <div className="d-flex justify-content-between">
-            <Button variant="outline-secondary" onClick={() => navigate('/dashboard')}>
+            <Button variant="outline-secondary" onClick={() => navigate('/collaboratordashboard')}>
               <FiArrowLeft className="me-2" /> Back to Dashboard
             </Button>
-            <Link to={`/projects/${id}/edit`}>
-              <Button variant="primary">
-                <FiEdit className="me-2" /> Edit Project
-              </Button>
-            </Link>
+            <Button 
+              variant="danger"
+              size="lg"
+              onClick={handleDelete}
+            >
+              Delete Project
+            </Button>
+
           </div>
         </Card.Body>
       </Card>

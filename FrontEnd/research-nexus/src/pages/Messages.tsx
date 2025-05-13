@@ -14,22 +14,32 @@ interface Message {
   content: string;
   delivered: boolean;
   read: boolean;
-  
 }
 
+interface Requested {
+  _id: string;
+  sender: { _id: string; fname: string; lname: string; role: string };
+  receiver: { _id: string; fname: string; lname: string ; role: string};
+  projectId: {_id:string; creator:string};
+  content: string;
+  delivered: boolean;
+  read: boolean;
+}
 const MessageInvitesPage: React.FC = () => {
   const { user } = useContext(AuthContext);
   const [activeProjectIds, setActiveProjectIds] = useState<string[]>([]);
   const [invites, setInvites] = useState<Message[]>([]);
+  const [request, setRequest] = useState<Requested[]>([]);
   const [acceptedProjects, setAcceptedProjects] = useState<string[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchInvites();
     fetchUserInvites();
     fetchProjectDetails();
+    fetchRequests();
+    fetchInvites();
   }, []);
 
 
@@ -45,12 +55,15 @@ const MessageInvitesPage: React.FC = () => {
     }
   }, [invites]);  
   
+  
   const fetchInvites = async () => {
     try {
       const res = await axios.get(`${config.API_URL}/api/message/user/${user?.id}`);
-      const uniqueInvites = res.data.reduce((acc: Message[], message: Message) => {
-        if (!acc.some(msg => msg.projectId === message.projectId)) {
-          acc.push(message);
+      const uniqueInvites = res.data.reduce((acc: Requested[], message: Requested) => {
+        if (message.projectId.creator !== user?.id) {
+          if (!acc.some(msg => msg.projectId._id === message.projectId._id)) {
+            acc.push(message);
+          }
         }
         return acc;
       }, []);
@@ -61,6 +74,26 @@ const MessageInvitesPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const fetchRequests = async () => {
+    try {
+      const res = await axios.get(`${config.API_URL}/api/message/all/messages`);
+      const filteredRequests = res.data.reduce((acc: Requested[], message: Requested) => {
+        if (message.projectId.creator === user?.id) {
+          if (!acc.some(msg => msg.projectId._id === message.projectId._id)) {
+            acc.push(message);
+          }
+        }
+        return acc;
+      }, []);
+      setRequest(filteredRequests);
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
 
   const checkActiveProjects = async (messages: Message[]) => {
     try {
@@ -84,7 +117,6 @@ const MessageInvitesPage: React.FC = () => {
     try {
       await axios.put(`${config.API_URL}/api/createproject/projects/${message.projectId}`, {
         status: 'Active Collab',
-        collaborators: [ user?.id] ,
       });
 
       setAcceptedProjects(prev => [...prev, message.projectId]);
@@ -93,6 +125,27 @@ const MessageInvitesPage: React.FC = () => {
       setInvites(prev =>
         prev.map(invite =>
           invite.projectId === message.projectId
+            ? { ...invite } 
+            : invite
+        )
+      );      
+    } catch (error) {
+      console.error('Failed to accept invite:', error);
+    }
+  };
+
+  const acceptInviteR = async (message: Requested) => {
+    try {
+      await axios.put(`${config.API_URL}/api/createproject/projects/${message.projectId}`, {
+        status: 'Active Collab',
+      });
+
+      setAcceptedProjects(prev => [...prev, message.projectId._id]);
+      setActiveProjectIds(prev => [...prev, message.projectId._id]);
+
+      setInvites(prev =>
+        prev.map(invite =>
+          invite.projectId === message.projectId._id
             ? { ...invite } 
             : invite
         )
@@ -212,15 +265,19 @@ const MessageInvitesPage: React.FC = () => {
     navigate(`/chat/${message.projectId}`);
   };
 
+  const goToChatR = async (message: Requested) => {
+    await markMessagesAsRead(message.projectId._id);
+    navigate(`/chat/${message.projectId}`);
+  };
   if (loading) return <div className="messages-spinner"><Spinner animation="border" /></div>;
 
   return (
     <Container className="messages-container">
-       <Row className="mb-4">
+      <Row className="mb-4">
               <Col>
                 <Card>
                   <Card.Body>
-                  <h2 className="messages-title">Messages</h2>
+                    <h4>Messages</h4>
                     <p className="text-muted">
                     Conversations that keep your research moving.
                     </p>
@@ -228,6 +285,7 @@ const MessageInvitesPage: React.FC = () => {
                 </Card>
               </Col>
             </Row>
+     
       {invites.length === 0 ? (
         <div className="no-messages">No messages yet.</div>
       ) : (
@@ -280,8 +338,7 @@ const MessageInvitesPage: React.FC = () => {
                 <small className="text-muted">Message:</small>
                 <div className="message-content">{message.content}</div>
 
-                {projectDetails[message.projectId] && !projectDetails[message.projectId].collaborators?.includes(user?.id) ? (
-
+                {!isActive ? (
                   isReceiver ? (
                     <div className="message-actions">
                       <Button
@@ -327,10 +384,127 @@ const MessageInvitesPage: React.FC = () => {
                 )}
               </Card.Body>
             </Card>
+            
+          );
+        })
+      )}
+
+       <Row className="mb-4">
+              <Col>
+                <Card>
+                  <Card.Body>
+                    <h4>Your Projects</h4>
+                    <p className="text-muted">
+                      People who want to collaborate with you on your projects
+                    </p>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+       {invites.length === 0 ? (
+        <div className="no-messages">No messages yet.</div>
+      ) : (
+        request.map((message) => {
+          const senderInitial = message.sender.fname.charAt(0).toUpperCase();
+          const isActive = activeProjectIds.includes(message.projectId._id);
+          const isReceiver = user?.id === message.receiver._id;
+          const isSender = user?.id === message.sender._id;
+
+          return (
+            <Card
+              key={message._id}
+              className={`message-card ${isActive ? 'clickable' : ''}`}
+              onClick={() => isActive && goToChatR(message)}
+            >
+              <Card.Body>
+                <div className="message-header d-flex align-items-center mb-3">
+                  <div
+                    className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                    style={{
+                      width: 50,
+                      height: 50,
+                      fontSize: 20,
+                      fontWeight: 'bold',
+                      marginRight: '10px',
+                    }}
+                  >
+                    {senderInitial}
+                  </div>
+                  <div>
+                    <strong>{message.sender.fname} {message.sender.lname}</strong>
+                  </div>
+                  <div className="role-label">
+                    {senderRole[message.projectId._id] && (
+                      <>{senderRole[message.projectId._id]}</>
+                    )}
+                  </div>
+                  <div className="project-title">
+                    <h5>Project Title:{projectDetails[message.projectId._id]?.title || 'Untitled Project'}</h5>
+                  </div>
+                  <div className="funding_amount">
+                    <h5>Funding:${projectDetails[message.projectId._id]?.funding_amount || 'No funding'}</h5>
+                  </div>
+
+
+                  <div className="project-status">
+                    {isActive ? "Active Collab" : "Pending"}
+                  </div>
+                </div>
+                <small className="text-muted">Message:</small>
+                <div className="message-content">{message.content}</div>
+
+                {!isActive ? (
+                  isReceiver ? (
+                    <div className="message-actions">
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          acceptInviteR(message);
+                        }}
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteInvite(message._id);
+                        }}
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  ) : isSender ? (
+                    <div className="message-actions">
+                      <div
+                        className="awaiting-box"
+                        style={{
+                          padding: '6px 12px',
+                          border: '1px solid #ccc',
+                          borderRadius: '4px',
+                          backgroundColor: '#f0f0f0',
+                          display: 'inline-block',
+                          color: '#555',
+                          fontSize: '14px',
+                        }}
+                      >
+                        Awaiting approval from receiver
+                      </div>
+                    </div>
+                  ) : null
+                ) : (
+                  <div className="accepted-label text-success">Accepted — Click to open chat</div>
+                )}
+              </Card.Body>
+            </Card>
+            
           );
         })
       )}
     </Container>
+    
   );
 };
 

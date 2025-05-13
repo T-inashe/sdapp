@@ -376,6 +376,11 @@ const CollaboratorDashboard: React.FC = () => {
           >
             <FiCalendar className="me-2" /> Calendar
           </Nav.Link>
+            <Nav className="flex-column sidebar-nav">
+                <Nav.Link href="/allmessages">
+                  <FiMessageSquare className="me-2" /> Message Users
+                </Nav.Link>
+                </Nav>
           <Nav.Link
             className={activeTab === 'settings' ? 'active' : ''}
             onClick={() => setActiveTab('settings')}

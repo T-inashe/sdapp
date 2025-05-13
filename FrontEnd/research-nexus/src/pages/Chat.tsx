@@ -37,16 +37,41 @@ const ChatPage: React.FC<ChatPageProps> = ({ setActiveTab }) => {
   const navigate = useNavigate();
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [showFileInput, setShowFileInput] = useState(false);
+  const [receiver, setReceiver] = useState<{ fname: string; lname: string } | null>(null);
 
   useEffect(() => {
     if (user?.id) {
       fetchMessages();
+    }
+    fetchMessagesbyUsers();
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchMessagesbyUsers();
     }
   }, [user?.id]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  
+
+useEffect(() => {
+  const fetchReceiverDetails = async () => {
+    try {
+      const response = await axios.get(`${config.API_URL}/api/users/${id}`); // Assuming your API returns user details by ID
+      setReceiver(response.data); // Set the receiver's details
+    } catch (error) {
+      console.error('Failed to fetch receiver details', error);
+    }
+  };
+
+  if (id) {
+    fetchReceiverDetails();
+  }
+}, [id]);
 
   const fetchMessages = async () => {
     try {
@@ -57,6 +82,34 @@ const ChatPage: React.FC<ChatPageProps> = ({ setActiveTab }) => {
       console.error('Failed to fetch messages', error);
     }
   };
+  
+  const fetchMessagesbyUsers = async () => {
+  const userA = user?.id;
+  const userB = id; // from route params
+
+  if (!userA || !userB) {
+    console.warn('Both userA and userB are required to fetch messages.');
+    return;
+  }
+
+  try {
+    const response = await axios.get(`${config.API_URL}/api/message`, {
+      params: { userA, userB },
+    });
+    const fetchedMessages: Message[] = response.data;
+    setMessages(fetchedMessages);
+  } catch (error) {
+    console.error('Failed to fetch messages', error);
+  }
+};
+
+const getDashboardTitle = () => {
+    const role = user?.role;
+    if (role === 'Researcher') return '/collaboratordashboard';
+    if (role === 'Reviewer') return '/reviewerdashboard';
+    if (role === 'Admin') return '/admindashboard';
+    return '/'; 
+  };
 
   const sendMessage = async () => {
   if (!newMessage.trim()) return;
@@ -65,7 +118,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ setActiveTab }) => {
     ? (messages[0].sender._id !== user?.id
         ? messages[0].sender._id
         : messages[0].receiver._id)
-    : null;
+    : id;
 
   if (!otherUserId) {
     console.error('Cannot determine receiver');
@@ -119,7 +172,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ setActiveTab }) => {
   return (
     <div className="page-container">
       <div>
-        <Link to="/collaboratordashboard" className="btn btn-link text-decoration-none ps-0">
+        <Link to={getDashboardTitle()} className="btn btn-link text-decoration-none ps-0">
           <FiArrowLeft /> Back to Dashboard
         </Link>
         <h2 className="mt-2 mb-0">Chat</h2>
@@ -130,7 +183,11 @@ const ChatPage: React.FC<ChatPageProps> = ({ setActiveTab }) => {
         <div className="chat-header">
           <div className="user-info">
             <strong>
-              {messages.length > 0 && messages[0].receiver.fname} {messages.length > 0 && messages[0].receiver.lname}
+                <strong>
+      {receiver 
+        ? `${receiver.fname} ${receiver.lname}` 
+        : (messages.length > 0 ? `${messages[0].receiver.fname} ${messages[0].receiver.lname}` : "Loading...")}
+    </strong>
             </strong>
           </div>
         </div>

@@ -2,11 +2,11 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Nav, Form, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
-import { FiFileText, FiLogOut, FiEye, FiCheckCircle } from 'react-icons/fi';
+import { FiFileText, FiLogOut, FiEye, FiCheckCircle,FiMessageSquare} from 'react-icons/fi';
 import axios from 'axios';
 import config from '../../config';
 import NotificatonsPage  from '../../pages/NotificationsPage';
-import { AiFillNotification } from 'react-icons/ai';
+import { AiFillNotification  } from 'react-icons/ai';
 
 interface Proposal {
   _id: string;
@@ -216,6 +216,11 @@ const ReviewerDashboard: React.FC = () => {
           <AiFillNotification className="me-2" /> Notification
         </Nav.Link>
         </Nav>
+        <Nav className="flex-column sidebar-nav">
+                          <Nav.Link href="/allmessages">
+                            <FiMessageSquare className="me-2" /> Message Users
+                          </Nav.Link>
+                          </Nav>
         
         <div className="mt-auto p-3">
           <Button variant="outline-danger" className="w-100" onClick={handleLogout}>

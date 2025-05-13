@@ -14,10 +14,15 @@ const router = express.Router();
 
 
 router.get('/', async (req, res) => {
+  try {
     const users = await getAllUsers();
-    res.status(200).json(users); 
-
+    res.status(200).json(users);
+  } catch (error) {
+    console.error('Failed to fetch users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
 });
+
 
 router.get('/reviewer', async (req, res) => {
   try {

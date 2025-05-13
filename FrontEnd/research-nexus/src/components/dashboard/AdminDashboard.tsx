@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Nav, Modal, Form, Table, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
-import { FiUsers, FiFileText, FiSettings, FiLogOut, FiCheckCircle, FiX } from 'react-icons/fi';
+import { FiUsers, FiFileText, FiSettings, FiLogOut, FiCheckCircle, FiX, FiMessageSquare } from 'react-icons/fi';
 import axios from 'axios';
 import config from '../../config';
 
@@ -281,6 +281,11 @@ const AdminDashboard: React.FC = () => {
           >
             <FiFileText className="me-2" /> Proposals
           </Nav.Link>
+          <Nav className="flex-column sidebar-nav">
+                  <Nav.Link href="/allmessages">
+                    <FiMessageSquare className="me-2" /> Message Users
+                  </Nav.Link>
+                  </Nav>
           <Nav.Link
             className={activeTab === 'settings' ? 'active' : ''}
             onClick={() => setActiveTab('settings')}

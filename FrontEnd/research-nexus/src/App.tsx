@@ -8,6 +8,7 @@ import AuthContext from './context/AuthContext';
 import NotificationsPage from './pages/NotificationsPage';
 import ChatPage from './pages/Chat';
 import MessagesPage from './pages/Messages';
+import AllMessagesPage from './pages/AllMessages';
 import Collaborators from './components/Collaborators';
 import ResearchCollabLanding from './pages/ResearchCollabLanding';
 import './App.css';
@@ -49,6 +50,7 @@ const App: React.FC = () => {
           <Route path="/apply/:id" element={<ApplyPage />} />
           <Route path="/chat/:id" element={<ChatPage />} />
           <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/allmessages" element={<AllMessagesPage />} />
           <Route path="/projects/create" element={<CreateProject />} />
           <Route path="/projects" element={<UserProjects />} />
           {/* Routes for viewing and editing specific projects */}

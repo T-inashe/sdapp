@@ -5,6 +5,7 @@ import {
   getMessageById,
   getMessagesByUser,
   markMessageAsRead,
+  getUnreadMessageCountsByReceiver,
   markMessageAsDelivered,
   deleteMessageById,
   getMessagesByProjectId,
@@ -25,6 +26,19 @@ router.post('/',upload.single('file'), async (req, res) => {
     res.status(500).json({ message: 'Error creating message', error: error.message });
   }
 });
+
+router.get('/unread-counts/:receiverId', async (req, res) => {
+  const { receiverId } = req.params;
+
+  try {
+    const counts = await getUnreadMessageCountsByReceiver(receiverId);
+    res.json(counts);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
 
 // Get all messages between two users
 router.get('/', async (req, res) => {

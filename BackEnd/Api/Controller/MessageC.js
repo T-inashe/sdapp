@@ -26,6 +26,38 @@ export const createMessage = async (payload, file) => {
 };
 
 
+import mongoose from 'mongoose';
+
+export const getUnreadMessageCountsByReceiver = async (receiverId) => {
+  try {
+    const counts = await Message.aggregate([
+      {
+        $match: {
+          receiver: new mongoose.Types.ObjectId(receiverId), // FIXED: ensure correct type
+          read: false
+        }
+      },
+      {
+        $group: {
+          _id: '$sender',
+          unreadCount: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          senderId: '$_id',
+          unreadCount: 1,
+          _id: 0
+        }
+      }
+    ]);
+    return counts;
+  } catch (error) {
+    throw new Error(`Error fetching unread counts: ${error.message}`);
+  }
+};
+
+
 export const getMessagesByUser = async (userId) => {
   try {
     const messages = await Message.find({

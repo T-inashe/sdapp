@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Container, Row, Col, Card, Table, Button, Badge, Modal, Form } from 'react-bootstrap';
-import { FiDollarSign, FiPlus, FiInfo } from 'react-icons/fi';
+import { Container, Row, Col, Card, Table, Button, Badge, Modal, Form, Nav } from 'react-bootstrap';
+import { FiDollarSign, FiPlus, FiInfo, FiPieChart, FiBarChart2 } from 'react-icons/fi';
 import AuthContext from '../../context/AuthContext';
 import axios from 'axios';
 import config from '../../config';
+import FundingVisualization from './FundingVisualization';
 
 interface Project {
   _id: number;
@@ -33,7 +34,7 @@ interface Expense {
   category: string;
 }
 
-const FundingTracker: React.FC = () => {
+const ResearchFundingDashboard: React.FC = () => {
   const { user } = useContext(AuthContext);
   const [projects, setProjects] = useState<Project[]>([]);
   const [fundingDetails, setFundingDetails] = useState<FundingDetails[]>([]);
@@ -42,6 +43,7 @@ const FundingTracker: React.FC = () => {
   const [selectedProjectExpenses, setSelectedProjectExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
+  const [activeView, setActiveView] = useState<'summary' | 'details' | 'visualization'>('summary');
   
   // Modals
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -144,6 +146,13 @@ const FundingTracker: React.FC = () => {
   const viewProjectDetails = (project: FundingDetails) => {
     setSelectedProject(project);
     setSelectedProjectExpenses(expenses.filter(exp => exp.projectId === project.projectId));
+    setActiveView('details');
+  };
+  
+  const viewProjectVisualizations = (project: FundingDetails) => {
+    setSelectedProject(project);
+    setSelectedProjectExpenses(expenses.filter(exp => exp.projectId === project.projectId));
+    setActiveView('visualization');
   };
   
   const formatCurrency = (amount: number) => {
@@ -267,6 +276,163 @@ const FundingTracker: React.FC = () => {
     setShowFundingModal(false);
   };
   
+  const renderBackButton = () => (
+    <Row className="mb-3">
+      <Col>
+        <Button variant="outline-secondary" onClick={() => {
+          setSelectedProject(null);
+          setActiveView('summary');
+        }}>
+          Back to All Projects
+        </Button>
+      </Col>
+    </Row>
+  );
+  
+  const renderProjectNavigation = () => (
+    <Row className="mb-3">
+      <Col>
+        <Nav variant="tabs">
+          <Nav.Item>
+            <Nav.Link 
+              active={activeView === 'details'} 
+              onClick={() => setActiveView('details')}
+            >
+              Project Details
+            </Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link 
+              active={activeView === 'visualization'} 
+              onClick={() => setActiveView('visualization')}
+            >
+              <FiPieChart className="me-1" /> Visualizations
+            </Nav.Link>
+          </Nav.Item>
+        </Nav>
+      </Col>
+    </Row>
+  );
+  
+  const renderProjectDetails = () => (
+    <Card>
+      <Card.Body>
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h5 className="mb-0">{selectedProject?.projectTitle}</h5>
+          <div>
+            <Button 
+              variant="outline-success" 
+              className="me-2"
+              onClick={() => setShowFundingModal(true)}
+            >
+              <FiDollarSign className="me-1" /> Add Funding
+            </Button>
+            <Button 
+              variant="outline-primary"
+              onClick={() => setShowExpenseModal(true)}
+            >
+              <FiPlus className="me-1" /> Add Expense
+            </Button>
+          </div>
+        </div>
+        
+        <Row className="mb-4">
+          <Col md={3}>
+            <Card bg="light">
+              <Card.Body className="text-center">
+                <h6>Total Awarded</h6>
+                <h4>{formatCurrency(selectedProject?.awarded || 0)}</h4>
+                <div>Funder: {selectedProject?.funder}</div>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={3}>
+            <Card bg="light">
+              <Card.Body className="text-center">
+                <h6>Total Spent</h6>
+                <h4>{formatCurrency(selectedProject?.spent || 0)}</h4>
+                <div>
+                  {((selectedProject?.spent || 0) / (selectedProject?.awarded || 1) * 100).toFixed(1)}% of budget
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={3}>
+            <Card bg="light">
+              <Card.Body className="text-center">
+                <h6>Remaining Balance</h6>
+                <h4 className={(selectedProject?.remaining || 0) < (selectedProject?.awarded || 0) * 0.2 ? 'text-danger' : ''}>
+                  {formatCurrency(selectedProject?.remaining || 0)}
+                </h4>
+                <div>
+                  {((selectedProject?.remaining || 0) / (selectedProject?.awarded || 1) * 100).toFixed(1)}% remaining
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={3}>
+            <Card bg={getStatusBadge(selectedProject?.status || 'Active')}>
+              <Card.Body className="text-center text-white">
+                <h6>Funding Status</h6>
+                <h4>{selectedProject?.status}</h4>
+                <div>Expires: {selectedProject ? new Date(selectedProject.endDate).toLocaleDateString() : ''}</div>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+        
+        <h6>Expense Breakdown</h6>
+        {selectedProjectExpenses.length > 0 ? (
+          <Table responsive hover>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Category</th>
+                <th>Date</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {selectedProjectExpenses.map((expense) => (
+                <tr key={expense.id}>
+                  <td>{expense.description}</td>
+                  <td>
+                    <Badge bg="secondary">{expense.category}</Badge>
+                  </td>
+                  <td>{new Date(expense.date).toLocaleDateString()}</td>
+                  <td>{formatCurrency(expense.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        ) : (
+          <div className="text-center p-4">
+            <FiInfo className="text-muted mb-2" size={24} />
+            <p>No expenses recorded yet</p>
+          </div>
+        )}
+      </Card.Body>
+    </Card>
+  );
+  
+  const renderVisualization = () => (
+    <FundingVisualization 
+      fundingDetails={fundingDetails}
+      expenses={expenses}
+      selectedProject={selectedProject}
+      formatCurrency={formatCurrency}
+    />
+  );
+  
+  const renderProjectView = () => {
+    if (activeView === 'details') {
+      return renderProjectDetails();
+    } else if (activeView === 'visualization') {
+      return renderVisualization();
+    }
+    return null;
+  };
+  
   if (isLoading) {
     return (
       <Container className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
@@ -294,172 +460,108 @@ const FundingTracker: React.FC = () => {
     <Container fluid>
       <Row className="mb-4">
         <Col>
-          <h4>Research Funding Tracker</h4>
+          <h4>Research Funding Dashboard</h4>
           <p className="text-muted">
-            Monitor and manage funding for all your research projects.
+            Monitor, manage, and visualize funding for all your research projects.
           </p>
         </Col>
       </Row>
       
       {!selectedProject ? (
-        <Row>
-          <Col>
-            <Card>
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h5 className="mb-0">Project Funding Summary</h5>
-                </div>
-                
-                <Table responsive striped hover>
-                  <thead>
-                    <tr>
-                      <th>Project Title</th>
-                      <th>Funder</th>
-                      <th>Awarded</th>
-                      <th>Spent</th>
-                      <th>Remaining</th>
-                      <th>End Date</th>
-                      <th>Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {fundingDetails.map((fund) => (
-                      <tr key={fund.projectId}>
-                        <td>{fund.projectTitle}</td>
-                        <td>{fund.funder}</td>
-                        <td>{formatCurrency(fund.awarded)}</td>
-                        <td>{formatCurrency(fund.spent)}</td>
-                        <td className={fund.remaining < fund.awarded * 0.2 ? 'text-danger fw-bold' : ''}>
-                          {formatCurrency(fund.remaining)}
-                        </td>
-                        <td>{new Date(fund.endDate).toLocaleDateString()}</td>
-                        <td>
-                          <Badge bg={getStatusBadge(fund.status)}>{fund.status}</Badge>
-                        </td>
-                        <td>
-                          <Button 
-                            variant="outline-primary" 
-                            size="sm"
-                            onClick={() => viewProjectDetails(fund)}
-                          >
-                            Details
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      ) : (
         <>
           <Row className="mb-3">
             <Col>
-              <Button variant="outline-secondary" onClick={() => setSelectedProject(null)}>
-                Back to All Projects
-              </Button>
+              <div className="d-flex justify-content-between align-items-center">
+                <h5>Project Funding Summary</h5>
+                {fundingDetails.length > 0 && (
+                  <Button 
+                    variant="outline-primary" 
+                    onClick={() => {
+                      setActiveView('visualization');
+                      setSelectedProject(null);
+                    }}
+                  >
+                    <FiBarChart2 className="me-1" /> Overall Analytics
+                  </Button>
+                )}
+              </div>
             </Col>
           </Row>
           
-          <Row className="mb-4">
-            <Col>
-              <Card>
-                <Card.Body>
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h5 className="mb-0">{selectedProject.projectTitle}</h5>
-                    <div>
-                      <Button 
-                        variant="outline-success" 
-                        className="me-2"
-                        onClick={() => setShowFundingModal(true)}
-                      >
-                        <FiDollarSign className="me-1" /> Add Funding
-                      </Button>
-                      <Button 
-                        variant="outline-primary"
-                        onClick={() => setShowExpenseModal(true)}
-                      >
-                        <FiPlus className="me-1" /> Add Expense
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <Row className="mb-4">
-                    <Col md={3}>
-                      <Card bg="light">
-                        <Card.Body className="text-center">
-                          <h6>Total Awarded</h6>
-                          <h4>{formatCurrency(selectedProject.awarded)}</h4>
-                          <div>Funder: {selectedProject.funder}</div>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                    <Col md={3}>
-                      <Card bg="light">
-                        <Card.Body className="text-center">
-                          <h6>Total Spent</h6>
-                          <h4>{formatCurrency(selectedProject.spent)}</h4>
-                          <div>{((selectedProject.spent / selectedProject.awarded) * 100).toFixed(1)}% of budget</div>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                    <Col md={3}>
-                      <Card bg="light">
-                        <Card.Body className="text-center">
-                          <h6>Remaining Balance</h6>
-                          <h4 className={selectedProject.remaining < selectedProject.awarded * 0.2 ? 'text-danger' : ''}>
-                            {formatCurrency(selectedProject.remaining)}
-                          </h4>
-                          <div>{((selectedProject.remaining / selectedProject.awarded) * 100).toFixed(1)}% remaining</div>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                    <Col md={3}>
-                      <Card bg={getStatusBadge(selectedProject.status)}>
-                        <Card.Body className="text-center text-white">
-                          <h6>Funding Status</h6>
-                          <h4>{selectedProject.status}</h4>
-                          <div>Expires: {new Date(selectedProject.endDate).toLocaleDateString()}</div>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                  </Row>
-                  
-                  <h6>Expense Breakdown</h6>
-                  {selectedProjectExpenses.length > 0 ? (
-                    <Table responsive hover>
+          {activeView === 'visualization' && !selectedProject ? (
+            <FundingVisualization 
+              fundingDetails={fundingDetails}
+              expenses={expenses}
+              selectedProject={null}
+              formatCurrency={formatCurrency}
+            />
+          ) : (
+            <Row>
+              <Col>
+                <Card>
+                  <Card.Body>
+                    <Table responsive striped hover>
                       <thead>
                         <tr>
-                          <th>Description</th>
-                          <th>Category</th>
-                          <th>Date</th>
-                          <th>Amount</th>
+                          <th>Project Title</th>
+                          <th>Funder</th>
+                          <th>Awarded</th>
+                          <th>Spent</th>
+                          <th>Remaining</th>
+                          <th>End Date</th>
+                          <th>Status</th>
+                          <th>Action</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {selectedProjectExpenses.map((expense) => (
-                          <tr key={expense.id}>
-                            <td>{expense.description}</td>
-                            <td>
-                              <Badge bg="secondary">{expense.category}</Badge>
+                        {fundingDetails.map((fund) => (
+                          <tr key={fund.projectId}>
+                            <td>{fund.projectTitle}</td>
+                            <td>{fund.funder}</td>
+                            <td>{formatCurrency(fund.awarded)}</td>
+                            <td>{formatCurrency(fund.spent)}</td>
+                            <td className={fund.remaining < fund.awarded * 0.2 ? 'text-danger fw-bold' : ''}>
+                              {formatCurrency(fund.remaining)}
                             </td>
-                            <td>{new Date(expense.date).toLocaleDateString()}</td>
-                            <td>{formatCurrency(expense.amount)}</td>
+                            <td>{new Date(fund.endDate).toLocaleDateString()}</td>
+                            <td>
+                              <Badge bg={getStatusBadge(fund.status)}>{fund.status}</Badge>
+                            </td>
+                            <td>
+                              <div className="btn-group">
+                                <Button 
+                                  variant="outline-primary" 
+                                  size="sm"
+                                  onClick={() => viewProjectDetails(fund)}
+                                >
+                                  Details
+                                </Button>
+                                <Button 
+                                  variant="outline-info" 
+                                  size="sm"
+                                  onClick={() => viewProjectVisualizations(fund)}
+                                >
+                                  <FiPieChart />
+                                </Button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </Table>
-                  ) : (
-                    <div className="text-center p-4">
-                      <FiInfo className="text-muted mb-2" size={24} />
-                      <p>No expenses recorded yet</p>
-                    </div>
-                  )}
-                </Card.Body>
-              </Card>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          )}
+        </>
+      ) : (
+        <>
+          {renderBackButton()}
+          {renderProjectNavigation()}
+          <Row className="mb-4">
+            <Col>
+              {renderProjectView()}
             </Col>
           </Row>
         </>
@@ -591,4 +693,4 @@ const FundingTracker: React.FC = () => {
   );
 };
 
-export default FundingTracker;
+export default ResearchFundingDashboard;

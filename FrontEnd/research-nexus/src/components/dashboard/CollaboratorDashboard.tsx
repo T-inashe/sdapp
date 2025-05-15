@@ -9,7 +9,7 @@ import Calendar from './Calendar';
 import MessagePage from '../../pages/Messages';
 import config from '../../config';
 /* Add to imports at the top */
-import FundingTracker from './FundingTracker';
+import ResearchFundingDashboard from './ResearchFundingDashboard';
 import { FiDollarSign } from 'react-icons/fi';
 
 interface Project {
@@ -751,7 +751,7 @@ const CollaboratorDashboard: React.FC = () => {
             </Row>
           </Container>
         )}
-        {activeTab === 'funding' && <FundingTracker />}
+        {activeTab === 'funding' && <ResearchFundingDashboard />}
         
         {activeTab === 'projects' && (
           <Container fluid>

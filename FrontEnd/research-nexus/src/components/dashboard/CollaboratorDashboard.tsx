@@ -8,6 +8,9 @@ import './Dashboard.css';
 import Calendar from './Calendar'; 
 import MessagePage from '../../pages/Messages';
 import config from '../../config';
+/* Add to imports at the top */
+import FundingTracker from './FundingTracker';
+import { FiDollarSign } from 'react-icons/fi';
 
 interface Project {
   _id: number;
@@ -381,6 +384,12 @@ const CollaboratorDashboard: React.FC = () => {
                   <FiMessageSquare className="me-2" /> Message Users
                 </Nav.Link>
                 </Nav>
+                <Nav.Link
+  className={activeTab === 'funding' ? 'active' : ''}
+  onClick={() => setActiveTab('funding')}
+>
+  <FiDollarSign className="me-2" /> Funding Tracker
+</Nav.Link>
           <Nav.Link
             className={activeTab === 'settings' ? 'active' : ''}
             onClick={() => setActiveTab('settings')}
@@ -742,6 +751,7 @@ const CollaboratorDashboard: React.FC = () => {
             </Row>
           </Container>
         )}
+        {activeTab === 'funding' && <FundingTracker />}
         
         {activeTab === 'projects' && (
           <Container fluid>

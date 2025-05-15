@@ -65,7 +65,7 @@ useEffect(() => {
 }, [id]);
 
  
-  const fetchMessagesbyUsers = async () => {
+const fetchMessagesbyUsers = async () => {
   const userA = user?.id;
   const userB = id; // from route params
 
@@ -79,11 +79,13 @@ useEffect(() => {
       params: { userA, userB },
     });
     const fetchedMessages: Message[] = response.data;
-    setMessages(fetchedMessages);
+    const filteredMessages = fetchedMessages.filter((msg) => !msg.projectId);
+    setMessages(filteredMessages);
   } catch (error) {
     console.error('Failed to fetch messages', error);
   }
 };
+
 
 const getDashboardTitle = () => {
     const role = user?.role;

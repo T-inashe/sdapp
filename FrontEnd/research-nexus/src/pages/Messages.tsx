@@ -26,7 +26,6 @@ const MessageInvitesPage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchInvites();
     fetchUserInvites();
     fetchProjectDetails();
   }, []);
@@ -43,23 +42,7 @@ const MessageInvitesPage: React.FC = () => {
       fetchProjectDetails();
     }
   }, [invites]);  
-  
-  const fetchInvites = async () => {
-    try {
-      const res = await axios.get(`${config.API_URL}/api/message/user/${user?.id}`);
-      const uniqueInvites = res.data.reduce((acc: Message[], message: Message) => {
-        if (!acc.some(msg => msg.projectId === message.projectId)) {
-          acc.push(message);
-        }
-        return acc;
-      }, []);
-      setInvites(uniqueInvites);
-    } catch (error) {
-      console.error('Error fetching invites:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const checkActiveProjects = async (messages: Message[]) => {
     try {

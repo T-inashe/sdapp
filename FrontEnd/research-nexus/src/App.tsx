@@ -7,6 +7,7 @@ import Dashboard from './components/dashboard/Dashboard';
 import AuthContext from './context/AuthContext';
 import NotificationsPage from './pages/NotificationsPage';
 import ChatPage from './pages/Chat';
+import IndividualChatPage from './pages/IndividualChat';
 import MessagesPage from './pages/Messages';
 import AllMessagesPage from './pages/AllMessages';
 import Collaborators from './components/Collaborators';
@@ -49,6 +50,7 @@ const App: React.FC = () => {
           <Route path="/Collaborators/:id" element={<Collaborators />} />
           <Route path="/apply/:id" element={<ApplyPage />} />
           <Route path="/chat/:id" element={<ChatPage />} />
+          <Route path="/individualchat/:id" element={<IndividualChatPage />} />
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/allmessages" element={<AllMessagesPage />} />
           <Route path="/projects/create" element={<CreateProject />} />

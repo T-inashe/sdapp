@@ -168,7 +168,7 @@ const getDashboardTitle = () => {
           filteredUsers.map(users => (
             <Link
               key={users._id}
-              to={`/chat/${users._id}`}
+              to={`/individualchat/${users._id}`}
               className="text-decoration-none text-dark"
              onClick={() => {
             if (messages.length > 0) {

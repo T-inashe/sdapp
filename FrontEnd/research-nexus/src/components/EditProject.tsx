@@ -1,8 +1,8 @@
+import React from 'react';
 import { useState, useEffect, FormEvent, ChangeEvent, JSX } from 'react';
 import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
-import config from '../config';
 
 interface ProjectFormData {
   title: string;
@@ -64,7 +64,7 @@ function EditProject(): JSX.Element {
     const fetchProjectData = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get(`${config.API_URL}/api/projects/${id}`, {
+        const response = await axios.get(`http://localhost:8081/api/projects/${id}`, {
           withCredentials: true
         });
         
@@ -130,7 +130,7 @@ function EditProject(): JSX.Element {
     setError('');
 
     try {
-      const response = await axios.put(`${config.API_URL}/api/projects/${id}/update`, formData, {
+      const response = await axios.put(`http://localhost:8081/api/projects/${id}/update`, formData, {
         withCredentials: true
       });
       
@@ -173,8 +173,9 @@ function EditProject(): JSX.Element {
               
               <Form noValidate validated={validated} onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Project Title *</Form.Label>
+                  <Form.Label htmlFor="projectTitle">Project Title *</Form.Label>
                   <Form.Control
+                    id="projectTitle"
                     type="text"
                     name="title"
                     value={formData.title}
@@ -188,8 +189,9 @@ function EditProject(): JSX.Element {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Description *</Form.Label>
+                  <Form.Label htmlFor="projectDescription">Description *</Form.Label>
                   <Form.Control
+                    id="projectDescription"
                     as="textarea"
                     rows={4}
                     name="description"
@@ -204,8 +206,9 @@ function EditProject(): JSX.Element {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Research Goals *</Form.Label>
+                  <Form.Label htmlFor="ResearchGoals">Research Goals *</Form.Label>
                   <Form.Control
+                    id="ResearchGoals"
                     as="textarea"
                     rows={3}
                     name="researchGoals"
@@ -220,28 +223,30 @@ function EditProject(): JSX.Element {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Research Area *</Form.Label>
+                  <Form.Label htmlFor="researchArea">Research Area *</Form.Label>
                   <Form.Select
-name="researchArea"
-value={formData.researchArea}
-onChange={handleChange}
-required
->
-<option value="">Select Research Area</option>
-{researchAreas.map((area, index) => (
-  <option key={index} value={area}>{area}</option>
-))}
-</Form.Select>
-<Form.Control.Feedback type="invalid">
-Please select a research area.
-</Form.Control.Feedback>
-</Form.Group>
+                    id="researchArea"
+                    name="researchArea"
+                    value={formData.researchArea}
+                    onChange={handleChange}
+                    required
+                  >
+                  <option value="">Select Research Area</option>
+                  {researchAreas.map((area, index) => (
+                    <option key={index} value={area}>{area}</option>
+                  ))}
+                  </Form.Select>
+                <Form.Control.Feedback type="invalid">
+                  Please select a research area.
+                </Form.Control.Feedback>
+                </Form.Group>
 
 <Row>
 <Col md={6}>
 <Form.Group className="mb-3">
-  <Form.Label>Start Date *</Form.Label>
+  <Form.Label htmlFor="startDate">Start Date *</Form.Label>
   <Form.Control
+    id="startDate"
     type="date"
     name="startDate"
     value={formData.startDate}
@@ -255,8 +260,9 @@ Please select a research area.
 </Col>
 <Col md={6}>
 <Form.Group className="mb-3">
-  <Form.Label>End Date *</Form.Label>
+  <Form.Label htmlFor="endDate">End Date *</Form.Label>
   <Form.Control
+    id="endDate"
     type="date"
     name="endDate"
     value={formData.endDate}
@@ -272,6 +278,7 @@ Please select a research area.
 
 <Form.Group className="mb-3">
 <Form.Check
+id="fundungAvailable"
 type="checkbox"
 label="Funding Available"
 name="fundingAvailable"
@@ -282,8 +289,9 @@ onChange={handleChange}
 
 {formData.fundingAvailable && (
 <Form.Group className="mb-3">
-<Form.Label>Funding Amount ($)</Form.Label>
+<Form.Label htmlFor="fundingAmount">Funding Amount ($)</Form.Label>
 <Form.Control
+  id="fundingAmount"
   type="number"
   name="fundingAmount"
   value={formData.fundingAmount}
@@ -295,6 +303,7 @@ onChange={handleChange}
 
 <Form.Group className="mb-3">
 <Form.Check
+id="collaboratorsNeeded"
 type="checkbox"
 label="Seeking Collaborators"
 name="collaboratorsNeeded"
@@ -305,8 +314,9 @@ onChange={handleChange}
 
 {formData.collaboratorsNeeded && (
 <Form.Group className="mb-3">
-<Form.Label>Collaborator Roles Needed</Form.Label>
+<Form.Label htmlFor="collaboratorRoles">Collaborator Roles Needed</Form.Label>
 <Form.Control
+  id="collaboratorRoles"
   as="textarea"
   rows={2}
   name="collaboratorRoles"
@@ -318,8 +328,9 @@ onChange={handleChange}
 )}
 
 <Form.Group className="mb-3">
-<Form.Label>Institution/University</Form.Label>
+<Form.Label htmlFor="institution">Institution/University</Form.Label>
 <Form.Control
+id="institution"
 type="text"
 name="institution"
 value={formData.institution}
@@ -329,8 +340,9 @@ placeholder="Your affiliated institution"
 </Form.Group>
 
 <Form.Group className="mb-3">
-<Form.Label>Contact Email</Form.Label>
+<Form.Label htmlFor="contactEmail">Contact Email</Form.Label>
 <Form.Control
+id="contactEmail"
 type="email"
 name="contactEmail"
 value={formData.contactEmail}

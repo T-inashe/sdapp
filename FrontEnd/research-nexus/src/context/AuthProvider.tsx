@@ -6,6 +6,7 @@ interface User {
   id: string;
   name: string;
   email: string;
+  role?:string;
   institution?: string;
   avatar?: string;
 }
@@ -18,67 +19,83 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [initialCheckDone, setInitialCheckDone] = useState<boolean>(false);
 
-  // Check if user is already logged in on component mount
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const response = await fetch(`${config.API_URL}/UserData`, {
-          credentials: 'include' // Important for cookies to be sent
-        });
-        
-        const data = await response.json();
-        
-        if (data.loggedIn && data.user) {
-          // Transform backend user data to match our User interface
-          const userData: User = {
-            id: data.user[0].id || '',
-            name: data.user[0].name || '',
-            email: data.user[0].email || '',
-            institution: data.user[0].institution || data.user[0].school || '',
-            avatar: data.user[0].avatar || ''
-          };
-          
-          setUser(userData);
-          setIsAuthenticated(true);
-        }
-      } catch (error) {
-        console.error('Failed to check authentication status:', error);
-        // On error, we assume user is not authenticated
-        setIsAuthenticated(false);
-        setUser(null);
-      } finally {
-        setLoading(false);
-        setInitialCheckDone(true);
+  // Helper: Get token from localStorage
+  const getToken = () => localStorage.getItem('token');
+
+  // Fetch user data using stored token
+  const fetchUserData = async () => {
+    const token = getToken();
+    if (!token) {
+      setIsAuthenticated(false);
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${config.API_URL}/auth/UserData`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch user data');
+
+      const data = await response.json();
+
+      if (data.user) {
+        const userData: User = {
+          id: data.user._id || '',
+          name: `${data.user.fname || ''} ${data.user.lname || ''}`,
+          email: data.user.email || '',
+          role: data.user.role || '',
+          institution: data.user.institution || data.user.school || '',
+          avatar: data.user.avatar || '',
+        };
+        setUser(userData);
+        setIsAuthenticated(true);
+      } else {
+        throw new Error('Invalid user data');
       }
-    };
+    } catch (error) {
+      console.error('Authentication check failed:', error);
+      setIsAuthenticated(false);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    checkAuthStatus();
+  // On mount, check if user is already logged in
+  useEffect(() => {
+    const tokenFromURL = new URLSearchParams(window.location.search).get('token');
+    if (tokenFromURL) {
+      localStorage.setItem('token', tokenFromURL);
+      // Clean URL (remove token from query string)
+      const url = new URL(window.location.href);
+      url.searchParams.delete('token');
+      window.history.replaceState({}, document.title, url.toString());
+    }
+    fetchUserData();
   }, []);
 
-  const login = (userData: User) => {
+  const login = (userData: User, token: string) => {
+    localStorage.setItem('token', token);
     setUser(userData);
     setIsAuthenticated(true);
   };
 
-  const logout = async () => {
-    try {
-      await fetch(`${config.API_URL}/logout`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-      
-      setUser(null);
-      setIsAuthenticated(false);
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
+  const logout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    setIsAuthenticated(false);
+    window.location.href = '/login';
   };
+  
 
-  // Don't render anything until initial auth check is done
-  if (loading && !initialCheckDone) {
-    return <div>Loading...</div>; // Or your preferred loading indicator
+  if (loading) {
+    return <div>Loading...</div>;
   }
 
   return (

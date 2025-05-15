@@ -8,7 +8,7 @@ import config from '../../config';
 const Register: React.FC = () => {
   const handleGoogleSignup = () => {
     // Redirect to backend Google OAuth route (same as login)
-    window.location.href = '`${config.API_URL}`/auth/google';
+    window.location.href = `${config.API_URL}/auth/google`;
   };
 
   return (

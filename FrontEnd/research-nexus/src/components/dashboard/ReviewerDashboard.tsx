@@ -2,23 +2,33 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Nav, Form, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
-import { FiFileText, FiLogOut, FiEye, FiCheckCircle } from 'react-icons/fi';
+import { FiFileText, FiLogOut, FiEye, FiCheckCircle,FiMessageSquare} from 'react-icons/fi';
 import axios from 'axios';
 import config from '../../config';
+import NotificatonsPage  from '../../pages/NotificationsPage';
+import { AiFillNotification  } from 'react-icons/ai';
 
 interface Proposal {
   _id: string;
-  title: string;
+  projectId:string;
+  project_title: string;
   description: string;
   research_goals: string;
   research_area: string;
   creator_email: string;
-  creator_name?: string;
+  creator: { _id: string; fname: string; lname: string; role:string };
   institution: string;
+  createdAt: string;
   start_date: string;
   end_date: string;
   status: string;
   created_at: string;
+  feedback:string;
+  file: {
+    data: "base64-string",
+    contentType: "application/pdf",
+    originalName: "proposal.pdf"
+  } 
 }
 
 interface Evaluation {
@@ -33,7 +43,7 @@ interface Evaluation {
 const ReviewerDashboard: React.FC = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
-  
+  const [activeTab, setActiveTab] = useState<string>('overview');
   const [assignedProposals, setAssignedProposals] = useState<Proposal[]>([]);
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [showEvaluationForm, setShowEvaluationForm] = useState<boolean>(false);
@@ -55,13 +65,14 @@ const ReviewerDashboard: React.FC = () => {
       setIsLoading(true);
       try {
         // Fetch proposals assigned to this reviewer
-        const response = await axios.get(`${config.API_URL}/api/reviewer/assigned-proposals`, {
+        const response = await axios.get(`${config.API_URL}/api/review/reviews/${user?.id}`, {
           withCredentials: true
         });
         
         if (response.data) {
           setAssignedProposals(response.data);
         }
+        console.log(response.data)
       } catch (error) {
         console.error('Error fetching assigned proposals:', error);
         setErrorMessage('Error connecting to server');
@@ -95,17 +106,32 @@ const ReviewerDashboard: React.FC = () => {
     if (!selectedProposal) return;
     
     try {
-      await axios.post(`${config.API_URL}/api/evaluations`, {
-        proposal_id: selectedProposal._id,
-        reviewer_id: user?._id,
-        ...evaluation
+      await axios.put(`${config.API_URL}/api/review/${selectedProposal._id}`, {
+        creator: selectedProposal.creator._id,
+        reviewer_id: user?.id,
+        project_title: selectedProposal.project_title,
+        research_area: selectedProposal.research_area,
+        research_goals:selectedProposal.research_goals,
+        description:selectedProposal.description,
+        start_date:selectedProposal.start_date,
+        end_date:selectedProposal.end_date,
+        institution:selectedProposal.institution,
+        status:selectedProposal.status,
+        evaluation: {
+          scientific_merit: evaluation.scientific_merit,
+          methodology: evaluation.methodology,
+          feasibility: evaluation.feasibility,
+          impact: evaluation.impact,
+          comments: evaluation.comments,
+          recommendation: evaluation.recommendation
+        }
       }, {
         withCredentials: true
       });
       
       // Update proposal status based on recommendation
-      await axios.put(`${config.API_URL}/api/createproject/${selectedProposal._id}/status`, {
-        status: evaluation.recommendation === 'Approve' ? 'Approved' : 
+      await axios.put(`${config.API_URL}/api/review/${selectedProposal._id}`, {
+        feedback: evaluation.recommendation === 'Approve' ? 'Approved' : 
                evaluation.recommendation === 'Reject' ? 'Rejected' : 'Revisions Requested'
       }, {
         withCredentials: true
@@ -115,7 +141,7 @@ const ReviewerDashboard: React.FC = () => {
       setAssignedProposals(prevProposals => 
         prevProposals.map(p => 
           p._id === selectedProposal._id ? 
-          { ...p, status: evaluation.recommendation === 'Approve' ? 'Approved' : 
+          { ...p, feedback: evaluation.recommendation === 'Approve' ? 'Approved' : 
                    evaluation.recommendation === 'Reject' ? 'Rejected' : 'Revisions Requested' } : 
           p
         )
@@ -159,6 +185,7 @@ const ReviewerDashboard: React.FC = () => {
   }
 
   return (
+    
     <div className="dashboard-container">
       {/* Sidebar */}
       <div className="dashboard-sidebar">
@@ -184,6 +211,17 @@ const ReviewerDashboard: React.FC = () => {
             <FiFileText className="me-2" /> Assigned Proposals
           </Nav.Link>
         </Nav>
+        <Nav className="flex-column sidebar-nav">
+        <Nav.Link href="/notifications">
+          <AiFillNotification className="me-2" /> Notification
+        </Nav.Link>
+        </Nav>
+        <Nav className="flex-column sidebar-nav">
+                          <Nav.Link href="/allmessages">
+                            <FiMessageSquare className="me-2" /> Message Users
+                          </Nav.Link>
+                          </Nav>
+        
         <div className="mt-auto p-3">
           <Button variant="outline-danger" className="w-100" onClick={handleLogout}>
             <FiLogOut className="me-2" /> Logout
@@ -208,7 +246,6 @@ const ReviewerDashboard: React.FC = () => {
             {errorMessage}
           </Alert>
         )}
-
         <Container fluid>
           <Row>
             <Col md={selectedProposal ? 6 : 12}>
@@ -231,17 +268,27 @@ const ReviewerDashboard: React.FC = () => {
                         <Card.Body>
                           <div className="d-flex justify-content-between align-items-start">
                             <div>
-                              <h5>{proposal.title}</h5>
+                              <h5>{proposal.project_title}</h5>
+                              <div className="d-flex flex-wrap gap-2">
                               <Badge bg="primary" className="me-2">{proposal.research_area}</Badge>
                               <Badge bg={
-                                proposal.status === 'Approved' ? 'success' :
-                                proposal.status === 'Rejected' ? 'danger' :
-                                proposal.status === 'Revisions Requested' ? 'warning' : 'info'
-                              }>
-                                {proposal.status || 'Pending Review'}
+                                  proposal.status === 'Active' ? 'warning' :
+                                  proposal.status === 'Pending Collab' ? 'info' :
+                                  proposal.status === 'Declined' ? 'dark' :
+                                  proposal.status === 'Active Collab' ? 'info' :
+                                  proposal.status === 'Cancelled' ? 'secondary' :
+                                  'info'
+                                }>
+                                {proposal.status}
                               </Badge>
+                              <Badge bg={
+                                proposal.feedback === 'Approved' ? 'success' :
+                                proposal.feedback === 'Rejected' ? 'danger' :
+                                proposal.feedback === 'Revisions Requested' ? 'warning' : 'info'
+                              }>{proposal.feedback || 'Pending Review'}</Badge>
+                              </div>
                               <p className="text-muted mt-2 mb-0">
-                                <small>From: {proposal.institution} • Submitted: {formatDate(proposal.created_at)}</small>
+                                <small>From: {proposal.institution} • Submitted: {formatDate(proposal.createdAt)}</small>
                               </p>
                             </div>
                             <Button 
@@ -281,10 +328,10 @@ const ReviewerDashboard: React.FC = () => {
                       )}
                     </div>
                   </Card.Header>
-                  
+                
                   {!showEvaluationForm ? (
                     <Card.Body>
-                      <h4>{selectedProposal.title}</h4>
+                      <h4>{selectedProposal.project_title}</h4>
                       <Badge bg="primary" className="mb-3">{selectedProposal.research_area}</Badge>
                       
                       <h5>Description</h5>
@@ -292,7 +339,9 @@ const ReviewerDashboard: React.FC = () => {
                       
                       <h5>Research Goals</h5>
                       <p>{selectedProposal.research_goals}</p>
-                      
+                      <a href={`${config.API_URL}/api/createproject/${selectedProposal.projectId}/download/`} download>
+                              Download {selectedProposal.file.originalName}
+                              </a>                      
                       <div className="d-flex justify-content-between">
                         <div>
                           <h5>Institution</h5>
@@ -305,7 +354,7 @@ const ReviewerDashboard: React.FC = () => {
                       </div>
                       
                       <h5>Submitted By</h5>
-                      <p>{selectedProposal.creator_name || selectedProposal.creator_email}</p>
+                      <p>{selectedProposal.creator.fname} {selectedProposal.creator.lname}</p>
                       
                       <div className="mt-3">
                         <h5>Current Status</h5>
@@ -326,7 +375,7 @@ const ReviewerDashboard: React.FC = () => {
                     </Card.Body>
                   ) : (
                     <Card.Body>
-                      <h4>Evaluate: {selectedProposal.title}</h4>
+                      <h4>Evaluate: {selectedProposal.project_title}</h4>
                       
                       <Form className="mt-3">
                         <h5>Scientific Merit</h5>

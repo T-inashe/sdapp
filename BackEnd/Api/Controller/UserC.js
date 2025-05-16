@@ -18,6 +18,17 @@ export const createUser = async (payload, file) => {
     throw new Error(`Error creating user: ${error.message}`);
   }
 };
+<<<<<<< HEAD
+=======
+export const getReviewers = async () => {
+  try {
+    const reviewers = await User.find({ role: 'Reviewer' });
+    return reviewers;
+  } catch (error) {
+    throw new Error(`Error fetching reviewers: ${error.message}`);
+  }
+};
+>>>>>>> 4482fc85418b87cede89550053f57f8b0c389c45
 
 export const loginUser = async (email, password) => {
   try {
@@ -42,6 +53,7 @@ export const loginUser = async (email, password) => {
   }
 };
 
+<<<<<<< HEAD
 
 export const getAllUsers = async () => {
     const users = await User.find(); 
@@ -49,6 +61,13 @@ export const getAllUsers = async () => {
 };
 
 
+=======
+export const getAllUsers = async () => {
+  const users = await User.find();
+  return users;
+};
+
+>>>>>>> 4482fc85418b87cede89550053f57f8b0c389c45
 export const getUserById = async (id) => {
   try {
     const user = await User.findById(id); 

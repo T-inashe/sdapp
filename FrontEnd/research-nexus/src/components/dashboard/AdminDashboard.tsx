@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Nav, Modal, Form, Table, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
-import { FiUsers, FiFileText, FiSettings, FiLogOut, FiCheckCircle, FiX } from 'react-icons/fi';
+import { FiUsers, FiFileText, FiSettings, FiLogOut, FiCheckCircle, FiX, FiMessageSquare } from 'react-icons/fi';
 import axios from 'axios';
 import config from '../../config';
 
@@ -11,7 +11,8 @@ interface User {
   fname: string;
   email: string;
   role: string;
-  institution: string;
+  contact:string;
+  department: string;
   createdAt: string;
 }
 
@@ -22,21 +23,26 @@ interface Proposal {
   research_goals: string;
   research_area: string;
   creator_email: string;
-  creator_name?: string;
+  creator: { _id: string; fname: string; lname: string; role:string };
   institution: string;
   start_date: string;
   end_date: string;
   status: string;
   created_at: string;
   assigned_reviewers?: string[];
+  file: {
+    data: "base64-string",
+    contentType: "application/pdf",
+    originalName: "proposal.pdf"
+  } 
 }
 
 interface Reviewer {
   _id: string;
-  name: string;
-  email: string;
+  fname: string;
+  lname: string;
   expertise: string[];
-  institution: string;
+  department: string;
 }
 
 const AdminDashboard: React.FC = () => {
@@ -78,7 +84,7 @@ const AdminDashboard: React.FC = () => {
         }
 
         // Fetch reviewers (users with Reviewer role)
-        const reviewersResponse = await axios.get(`${config.API_URL}/api/users?role=Reviewer`, {
+        const reviewersResponse = await axios.get(`${config.API_URL}/api/users/reviewer`, {
           withCredentials: true
         });
         if (reviewersResponse.data) {
@@ -161,40 +167,68 @@ const AdminDashboard: React.FC = () => {
   };
 
   const submitReviewerAssignment = async () => {
-    if (!selectedProposal) return;
-    
+    if (!selectedProposal || selectedReviewers.length === 0) return;
+  
     try {
-      await axios.put(`${config.API_URL}/api/createproject/${selectedProposal._id}/assign-reviewers`, {
-        reviewers: selectedReviewers
-      }, {
-        withCredentials: true
-      });
-      
-      // Update local state
-      setProposals(prevProposals => prevProposals.map(p => 
-        p._id === selectedProposal._id ? { ...p, assigned_reviewers: selectedReviewers } : p
-      ));
-      
-      setSuccessMessage(`Reviewers assigned to proposal: ${selectedProposal.title}`);
-      
-      // Send notifications to assigned reviewers
+      // Loop through each selected reviewer and assign the proposal
       for (const reviewerId of selectedReviewers) {
-        await axios.post(`${config.API_URL}/api/notifications`, {
+        const reviewData = {
+          reviewer: reviewerId,
+          projectId:selectedProposal._id,
+          creator: selectedProposal.creator._id,
+          project_title: selectedProposal.title,
+          research_goals:selectedProposal.research_goals,
+          research_area: selectedProposal.research_area,
+          description:selectedProposal.description,
+          start_date: selectedProposal.start_date,
+          end_date: selectedProposal.end_date,
+          institution: selectedProposal.institution,
+          status: selectedProposal.status,
+          file: {
+            data: selectedProposal.file.data,
+            contentType: selectedProposal.file.contentType,
+            originalName: selectedProposal.file.originalName
+          },
+          assigned: true,
+        };
+  
+        const messageData = {
           user: reviewerId,
           message: `You've been assigned to review proposal: ${selectedProposal.title}`,
-          type: 'info',
-          date: new Date().toISOString()
+          type: 'AssignedReview',
+          date: new Date().toISOString(),
+        };
+        console.log("Sending review data:", reviewData);
+        console.log("Sending review data:", messageData);
+  
+        // Create review assignment
+        await axios.post(`${config.API_URL}/api/review`, reviewData, {
+          withCredentials: true,
+        });
+  
+        // Send notification to reviewer
+        await axios.post(`${config.API_URL}/api/notifications`,messageData, {
+          withCredentials: true,
         });
       }
-      
-      // Close modal
+  
+      // Update local proposal state with all assigned reviewers
+      setProposals(prevProposals =>
+        prevProposals.map(p =>
+          p._id === selectedProposal._id
+            ? { ...p, assigned_reviewers: selectedReviewers }
+            : p
+        )
+      );
+  
+      setSuccessMessage(`Reviewers assigned to proposal: ${selectedProposal.title}`);
       setShowReviewerModal(false);
     } catch (error) {
       console.error('Error assigning reviewers:', error);
       setErrorMessage('Failed to assign reviewers');
     }
   };
-
+  
   const formatDate = (dateString: string): string => {
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
@@ -247,6 +281,11 @@ const AdminDashboard: React.FC = () => {
           >
             <FiFileText className="me-2" /> Proposals
           </Nav.Link>
+          <Nav className="flex-column sidebar-nav">
+                  <Nav.Link href="/allmessages">
+                    <FiMessageSquare className="me-2" /> Message Users
+                  </Nav.Link>
+                  </Nav>
           <Nav.Link
             className={activeTab === 'settings' ? 'active' : ''}
             onClick={() => setActiveTab('settings')}
@@ -292,9 +331,8 @@ const AdminDashboard: React.FC = () => {
                       <thead>
                         <tr>
                           <th>Name</th>
-                          <th>Email</th>
                           <th>Institution</th>
-                          <th>Current Role</th>
+                          <th>Contact</th>
                           <th>Joined</th>
                           <th>Actions</th>
                         </tr>
@@ -303,8 +341,9 @@ const AdminDashboard: React.FC = () => {
                         {users.map(user => (
                           <tr key={user._id}>
                             <td>{user.fname}</td>
-                            <td>{user.email}</td>
-                            <td>{user.institution}</td>
+                            <td>{user.department}</td>
+                            <td>{user.contact}</td>
+                            <td>{user.role}</td>
                             <td>
                               <Badge bg={
                                 user.role === 'Admin' ? 'danger' :
@@ -359,7 +398,7 @@ const AdminDashboard: React.FC = () => {
                           <tr key={proposal._id}>
                             <td>{proposal.title}</td>
                             <td>{proposal.research_area}</td>
-                            <td>{proposal.creator_name || proposal.creator_email}</td>
+                            <td>{proposal.creator.fname }  {proposal.creator.lname }</td>
                             <td>{proposal.institution}</td>
                             <td>
                               <Badge bg={
@@ -418,7 +457,7 @@ const AdminDashboard: React.FC = () => {
                       <p><strong>Research Goals:</strong> {selectedProposal.research_goals}</p>
                       <p><strong>Institution:</strong> {selectedProposal.institution}</p>
                       <p><strong>Timeline:</strong> {formatDate(selectedProposal.start_date)} - {formatDate(selectedProposal.end_date)}</p>
-                      <p><strong>Submitted By:</strong> {selectedProposal.creator_name || selectedProposal.creator_email}</p>
+                      <p><strong>Submitted By:</strong> {selectedProposal.creator.fname || selectedProposal.creator_email}</p>
                       
                       <div className="mt-3">
                         <h5>Assigned Reviewers</h5>
@@ -428,8 +467,8 @@ const AdminDashboard: React.FC = () => {
                               const reviewer = reviewers.find(r => r._id === reviewerId);
                               return (
                                 <li key={reviewerId}>
-                                  {reviewer ? reviewer.name : reviewerId} 
-                                  {reviewer && ` (${reviewer.institution})`}
+                                  {reviewer ? reviewer.lname : reviewerId} 
+                                  {reviewer && ` (${reviewer.department})`}
                                 </li>
                               );
                             })}
@@ -547,8 +586,8 @@ const AdminDashboard: React.FC = () => {
                           id={`reviewer-${reviewer._id}`}
                           label={
                             <div>
-                              <strong>{reviewer.name}</strong>
-                              <span className="text-muted"> ({reviewer.institution})</span>
+                              <strong>{reviewer.fname} {reviewer.lname}</strong>
+                              <span className="text-muted"> ({reviewer.department})</span>
                               <div>
                                 {reviewer.expertise?.map((exp, idx) => (
                                   <Badge bg="light" text="dark" className="me-1" key={idx}>

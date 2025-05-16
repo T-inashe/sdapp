@@ -1,35 +1,53 @@
-import React, { useState } from 'react';
+import  { useState, FormEvent, ChangeEvent, JSX } from 'react';
+import React, { useContext} from 'react';
 import { Container, Row, Col, Form, Button, Card, Spinner } from 'react-bootstrap';
 import axios from 'axios';
+import AuthContext from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import config from '../config';
 
-type CreateProjectResponse = {
-  success: boolean;
-  message?: string;
-};
+interface ProjectFormData {
+  creator?: string;
+  title: string;
+  description: string;
+  research_goals: string;
+  research_area: string;
+  start_date: string;
+  end_date: string;
+  funding_available: boolean;
+  funding_amount: string;
+  collaborators_needed: boolean;
+  collaborator_roles: string;
+  institution: string;
+  contact_email: string;
+}
 
 function CreateProject() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
+  const { user, logout } = useContext(AuthContext);
+  const [formData, setFormData] = useState<ProjectFormData>({
+    creator:'',
     title: '',
     description: '',
-    researchGoals: '',
-    researchArea: '',
-    startDate: '',
-    endDate: '',
-    fundingAvailable: false,
-    fundingAmount: '',
-    collaboratorsNeeded: false,
-    collaboratorRoles: '',
+    research_goals: '',
+    research_area: '',
+    start_date: '',
+    end_date: '',
+    funding_available: false,
+    funding_amount: '',
+    collaborators_needed: false,
+    collaborator_roles: '',
     institution: '',
-    contactEmail: ''
+    contact_email: ''
   });
 
-  const [validated, setValidated] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [validated, setValidated] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [file, setFile] = useState<File | null>(null);
 
-  const researchAreas = [
+
+  const research_areas: string[] = [
     'Artificial Intelligence',
     'Data Science',
     'Machine Learning',
@@ -47,86 +65,56 @@ function CreateProject() {
     'Other'
   ];
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const target = e.target;
-    const value = target.type === 'checkbox'
-      ? (target as HTMLInputElement).checked
-      : target.value;
-    const name = target.name;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    setFormData({
+      ...formData,
+      creator: user?.id || '',
+      [name]: type === 'checkbox' ? checked : value
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-
-    if (form.checkValidity() === false) {
+  
+    if (form.checkValidity() === false || !file) {
       e.stopPropagation();
       setValidated(true);
       return;
     }
-
-    // Conditional field validation
-    if (
-      (formData.fundingAvailable && (!formData.fundingAmount || Number(formData.fundingAmount) <= 0)) ||
-      (formData.collaboratorsNeeded && !formData.collaboratorRoles.trim())
-    ) {
-      setError('Please fill in all required fields for funding/collaborators.');
-      setValidated(true);
-      return;
-    }
-
-    // Date validation
-    if (new Date(formData.endDate) < new Date(formData.startDate)) {
-      setError('End date cannot be earlier than start date.');
-      setValidated(true);
-      return;
-    }
-
+  
     setIsSubmitting(true);
     setError('');
-
-    const sanitizedData = {
-      ...formData,
-      title: formData.title.trim(),
-      description: formData.description.trim(),
-      researchGoals: formData.researchGoals.trim(),
-      researchArea: formData.researchArea.trim(),
-      institution: formData.institution.trim(),
-      contactEmail: formData.contactEmail.trim(),
-      fundingAmount: formData.fundingAvailable ? formData.fundingAmount : null,
-      collaboratorRoles: formData.collaboratorsNeeded ? formData.collaboratorRoles.trim() : null
-    };
-
+  
     try {
-      const response = await axios.post<CreateProjectResponse>(
-        `${process.env.BACKEND_URL}/api/projects/create`,  // update API URL
-        sanitizedData,
-        { withCredentials: true }
-      );
-
-      if (response.data.success) {
-        navigate('/dashboard');
-      } else {
-        setError(response.data.message || 'Failed to create project');
+      const data = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        data.append(key, value as string); // cast needed for types
+      });
+      data.append('file', file); 
+  
+      for (const [key, value] of data.entries()) {
+        console.log(`${key}:`, value);
       }
-    } catch (err: any) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || 'Server error. Please try again later.');
-      } else {
-        setError('Unexpected error. Please try again.');
-      }
+      const response = await axios.post(`${config.API_URL}/api/createproject/projects`, data, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+  
+      console.log('Project created:', response.data);
+      navigate('/collaboratordashboard');
+    } catch (err) {
+      setError('Server error. Please try again later.');
       console.error('Project creation error:', err);
     } finally {
       setIsSubmitting(false);
     }
   };
+  
 
   const handleCancel = () => {
     const isConfirmed = window.confirm('Are you sure you want to discard the changes?');
@@ -200,33 +188,45 @@ function CreateProject() {
                     id="researchGoals"
                     as="textarea"
                     rows={3}
-                    name="researchGoals"
-                    value={formData.researchGoals}
+                    name="research_goals"
+                    value={formData.research_goals}
                     onChange={handleChange}
                     required
                     placeholder="List the key research goals and objectives"
                     maxLength={800}
-                    isInvalid={validated && !formData.researchGoals}
+                    isInvalid={validated && !formData.research_goals}
                   />
                   <Form.Text muted>Max 800 characters</Form.Text>
                   <Form.Control.Feedback type="invalid">
                     Please provide research goals.
                   </Form.Control.Feedback>
                 </Form.Group>
-
+                <Form.Group className="mb-3">
+                  <Form.Label>Upload Project Image/File *</Form.Label>
+                  <Form.Control 
+                    type="file" 
+                    accept="image/*,application/pdf" 
+                    onChange={(e) => {
+                      const target = e.target as HTMLInputElement;
+                      setFile(target.files?.[0] || null);
+                    }}
+                     
+                    required 
+                  />
+                </Form.Group>
+               
                 <Form.Group className="mb-3">
                   <Form.Label htmlFor="researchArea">Research Area *</Form.Label>
                   <Form.Select
-                    id="researchArea"
-                    name="researchArea"
-                    value={formData.researchArea}
+                    name="research_area"
+                    value={formData.research_area}
                     onChange={handleChange}
                     required
-                    isInvalid={validated && !formData.researchArea}
+                    isInvalid={validated && !formData.research_area}
                   >
                     <option value="">Select Research Area</option>
-                    {researchAreas.map((area) => (
-                      <option key={area} value={area}>{area}</option>
+                    {research_areas.map((area, index) => (
+                      <option key={index} value={area}>{area}</option>
                     ))}
                   </Form.Select>
                   <Form.Control.Feedback type="invalid">
@@ -241,11 +241,11 @@ function CreateProject() {
                       <Form.Control
                         id="startDate"
                         type="date"
-                        name="startDate"
-                        value={formData.startDate}
+                        name="start_date"
+                        value={formData.start_date}
                         onChange={handleChange}
                         required
-                        isInvalid={validated && !formData.startDate}
+                        isInvalid={validated && !formData.start_date}
                       />
                       <Form.Control.Feedback type="invalid">
                         Please select a start date.
@@ -258,11 +258,11 @@ function CreateProject() {
                       <Form.Control
                         id="endDate"
                         type="date"
-                        name="endDate"
-                        value={formData.endDate}
+                        name="end_date"
+                        value={formData.end_date}
                         onChange={handleChange}
                         required
-                        isInvalid={validated && !formData.endDate}
+                        isInvalid={validated && !formData.end_date}
                       />
                       <Form.Control.Feedback type="invalid">
                         Please select an end date.
@@ -276,23 +276,23 @@ function CreateProject() {
                     id="fundingAvailable"
                     type="checkbox"
                     label="Funding Available"
-                    name="fundingAvailable"
-                    checked={formData.fundingAvailable}
+                    name="funding_available"
+                    checked={formData.funding_available}
                     onChange={handleChange}
                   />
                 </Form.Group>
 
-                {formData.fundingAvailable && (
+                {formData.funding_available && (
                   <Form.Group className="mb-3">
                     <Form.Label htmlFor="fundingAmount">Funding Amount ($)</Form.Label>
                     <Form.Control
                       id="fundingAmount"
                       type="number"
-                      name="fundingAmount"
-                      value={formData.fundingAmount}
+                      name="funding_amount"
+                      value={formData.funding_amount}
                       onChange={handleChange}
-                      required={formData.fundingAvailable}
-                      isInvalid={validated && formData.fundingAvailable && !formData.fundingAmount}
+                      required={formData.funding_available}
+                      isInvalid={validated && formData.funding_available && !formData.funding_amount}
                       min="0"
                       placeholder="Enter the available funding amount"
                       aria-required="true"
@@ -308,25 +308,25 @@ function CreateProject() {
                     id="collaboratorsNeeded"
                     type="checkbox"
                     label="Seeking Collaborators"
-                    name="collaboratorsNeeded"
-                    checked={formData.collaboratorsNeeded}
+                    name="collaborators_needed"
+                    checked={formData.collaborators_needed}
                     onChange={handleChange}
                   />
                 </Form.Group>
 
-                {formData.collaboratorsNeeded && (
+                {formData.collaborators_needed && (
                   <Form.Group className="mb-3">
                     <Form.Label htmlFor="collaboratorRoles">Collaborator Roles Needed</Form.Label>
                     <Form.Control
                       id="collaboratorRoles"
                       as="textarea"
                       rows={2}
-                      name="collaboratorRoles"
-                      value={formData.collaboratorRoles}
+                      name="collaborator_roles"
+                      value={formData.collaborator_roles}
                       onChange={handleChange}
                       placeholder="Describe the roles and expertise you're looking for"
-                      required={formData.collaboratorsNeeded}
-                      isInvalid={validated && formData.collaboratorsNeeded && !formData.collaboratorRoles}
+                      required={formData.collaborators_needed}
+                      isInvalid={validated && formData.collaborators_needed && !formData.collaborator_roles}
                     />
                     <Form.Control.Feedback type="invalid">
                       Please specify the roles needed for collaboration.
@@ -351,12 +351,12 @@ function CreateProject() {
                   <Form.Control
                     id="contactEmail"
                     type="email"
-                    name="contactEmail"
-                    value={formData.contactEmail}
+                    name="contact_email"
+                    value={formData.contact_email}
                     onChange={handleChange}
                     placeholder="Email for project inquiries"
                     required
-                    isInvalid={validated && !formData.contactEmail}
+                    isInvalid={validated && !formData.contact_email}
                   />
                   <Form.Control.Feedback type="invalid">
                     Please enter a valid contact email.

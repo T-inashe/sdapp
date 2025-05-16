@@ -100,6 +100,49 @@
   outline: none;
 }
 
+.clip-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #555;
+  padding: 0 8px;
+}
+.chat-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.file-upload-slide {
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  width: 100%;
+  background-color: #f4f4f4;
+  padding: 10px;
+  border-top: 1px solid #ccc;
+  animation: slideUp 0.3s ease-in-out;
+  z-index: 2;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0%);
+    opacity: 1;
+  }
+}
+
+.file-preview {
+  background-color: #eaf4ff;
+  padding: 5px 12px;
+  font-size: 14px;
+  color: #333;
+  border-top: 1px solid #cde;
+}
+
 .send-btn {
   width: 40px;
   height: 40px;

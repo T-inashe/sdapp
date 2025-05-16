@@ -14,8 +14,23 @@ const MessageSchema = new mongoose.Schema({
   projectId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Project',
+<<<<<<< HEAD
     required: true,
   },  
+=======
+  },  
+  file: {
+    data: {
+      type: Buffer, 
+    },
+    contentType: {
+      type: String, 
+    },
+    originalName: {
+      type: String, 
+    },
+  },
+>>>>>>> 4482fc85418b87cede89550053f57f8b0c389c45
   content: {
     type: String,
     required: [true, 'Message content is required'],

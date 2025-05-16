@@ -2,6 +2,10 @@ import express from 'express';
 import {
   deleteUserById,
   getAllUsers,
+<<<<<<< HEAD
+=======
+  getReviewers,
+>>>>>>> 4482fc85418b87cede89550053f57f8b0c389c45
   getUserById,
   modifyUser,
   createUser,
@@ -13,9 +17,29 @@ const router = express.Router();
 
 
 router.get('/', async (req, res) => {
+<<<<<<< HEAD
     const users = await getAllUsers();
     res.status(200).json(users); 
 
+=======
+  try {
+    const users = await getAllUsers();
+    res.status(200).json(users);
+  } catch (error) {
+    console.error('Failed to fetch users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+
+router.get('/reviewer', async (req, res) => {
+  try {
+    const reviewers = await getReviewers();
+    res.status(200).json(reviewers);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching reviewers', error: error.message });
+  }
+>>>>>>> 4482fc85418b87cede89550053f57f8b0c389c45
 });
 
 

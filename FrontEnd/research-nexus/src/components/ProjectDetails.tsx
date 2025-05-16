@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Spinner, Alert } from 'react-bootstrap';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -21,6 +21,11 @@ interface Project {
   institution: string | null;
   contact_email: string;
   created_at: string;
+  file: {
+    data: "base64-string",
+    contentType: "application/pdf",
+    originalName: "proposal.pdf"
+  } 
 }
 
 const ProjectDetail: React.FC = () => {
@@ -29,6 +34,29 @@ const ProjectDetail: React.FC = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
+  const reportRef = useRef<HTMLDivElement>(null);
+
+ const [exporting, setExporting] = useState(false);
+
+const handleExportPDF = () => {
+  if (!reportRef.current) return;
+
+  setExporting(true);
+
+  try {
+    // @ts-ignore
+    const html2pdf = window.html2pdf;
+
+    html2pdf()
+      .from(reportRef.current)
+      .save()
+      .finally(() => setExporting(false));
+  } catch (err) {
+    console.error('PDF export error:', err);
+    setExporting(false);
+  }
+};
+
 
   useEffect(() => {
     const fetchProjectDetails = async () => {
@@ -117,7 +145,7 @@ const ProjectDetail: React.FC = () => {
         </Link>
       </div>
 
-      <Card className="shadow-sm mb-4">
+      <Card className="shadow-sm mb-4" ref={reportRef}>
         <Card.Header className="bg-primary text-white">
           <div className="d-flex justify-content-between align-items-center">
             <h2 className="mb-0">{project.title}</h2>
@@ -129,6 +157,9 @@ const ProjectDetail: React.FC = () => {
             <Col md={6}>
               <h5>Project Overview</h5>
               <p>{project.description}</p>
+              <a href={`${config.API_URL}/api/createproject/${project._id}/download/`} download>
+                  Download {project.file.originalName}
+                  </a>  
             </Col>
             <Col md={6}>
               <Card className="bg-light">
@@ -186,7 +217,7 @@ const ProjectDetail: React.FC = () => {
             <div className="mb-4">
               <h5>Collaborator Roles Needed</h5>
               <p>{project.collaborator_roles}</p>
-              <Button variant="success">
+              <Button variant="success"  onClick={() => navigate(`/collaborators/${project._id}`)}>
                 <FiUsers className="me-2" /> Apply to Collaborate
               </Button>
             </div>
@@ -204,6 +235,9 @@ const ProjectDetail: React.FC = () => {
               onClick={handleDelete}
             >
               Delete Project
+            </Button>
+            <Button onClick={handleExportPDF} disabled={exporting}>
+              {exporting ? 'Exporting...' : 'Export as PDF'}
             </Button>
 
           </div>

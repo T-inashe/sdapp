@@ -9,6 +9,8 @@ import notificationRoutes from './Api/Routes/NotificationR.js';
 import createprojectRoutes from './Api/Routes/ProjectR.js';
 import collaboratorRoutes from './Api/Routes/CollaboratorR.js';
 import messageRoutes from './Api/Routes/MessageR.js';
+import reviewRoutes from './Api/Routes/ReviewerR.js';
+import grantRoutes from './Api/Routes/GrantR.js';
 import './Authentication/passport.js';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
@@ -34,7 +36,7 @@ mongoose.connect(mongoURI, {
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Middleware
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Session Setup
 app.use(session({
@@ -54,6 +56,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/createproject', createprojectRoutes);
 app.use('/api/collaborator', collaboratorRoutes);
 app.use('/api/message', messageRoutes);
+app.use('/api/review', reviewRoutes);
+app.use('/api/grant', grantRoutes);
 
 app.get("/", (req, res) => {
   res.send("we are live" + BACKEND_URL);

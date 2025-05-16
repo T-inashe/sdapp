@@ -39,6 +39,23 @@ const ResearchProjectSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
+<<<<<<< HEAD
+=======
+    file: {
+      data: {
+        type: Buffer, 
+        required: true,
+      },
+      contentType: {
+        type: String, 
+        required: true,
+      },
+      originalName: {
+        type: String, 
+        required: true,
+      },
+    },
+>>>>>>> 4482fc85418b87cede89550053f57f8b0c389c45
     collaborators_needed: {
       type: Boolean,
       default: false,
@@ -60,6 +77,11 @@ const ResearchProjectSchema = new mongoose.Schema(
       enum: ['Active', 'Pending Collab', 'Declined', 'Active Collab',"Cancelled"], 
       default: 'Active',
     },
+<<<<<<< HEAD
+=======
+    collaborators: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+
+>>>>>>> 4482fc85418b87cede89550053f57f8b0c389c45
   },
   { timestamps: { createdAt: 'created_at', updatedAt: false } }
 );

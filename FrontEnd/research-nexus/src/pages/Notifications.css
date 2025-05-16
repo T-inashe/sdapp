@@ -151,3 +151,17 @@
 .project-title h5 {
   font-weight: 800; /* Even bolder */
 }
+
+.hover-bg-light:hover {
+  background-color: #acd5ff;
+}
+
+.hover-bg-light:hover {
+  background-color: #f8f9fa;
+}
+
+.badge.bg-danger {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+}

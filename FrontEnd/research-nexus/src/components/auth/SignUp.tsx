@@ -1,4 +1,3 @@
-import React from 'react';
 import { useState, ChangeEvent, FormEvent, useContext } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
@@ -41,9 +40,8 @@ const Signup: React.FC = () => {
     setErrors({});
 
     if (!id) {
-      console.log("User ID is missing");
       setErrors({ general: 'User ID is missing from the URL.' });
-      return <p>User ID is missing from the URL</p>;
+      return;
     }
 
     console.log("Submitting form data:", formData); // Log the form data for debugging
@@ -87,9 +85,8 @@ const Signup: React.FC = () => {
       return (
         <>
           <div className="form-group">
-            <label htmlFor= "researcharea">Research Area</label>
+            <label>Research Area</label>
             <input
-              id="researcharea"
               type="text"
               name="researcharea"
               value={formData.researcharea}
@@ -98,9 +95,8 @@ const Signup: React.FC = () => {
             />
           </div>
           <div className="form-group">
-            <label htmlFor="researchExperience">Research Experience</label>
+            <label>Research Experience</label>
             <select
-              id="researchExperience"
               name="researchExperience"
               value={formData.researchExperience}
               onChange={handleChange}
@@ -117,9 +113,8 @@ const Signup: React.FC = () => {
     } else if (formData.role === 'Reviewer') {
       return (
         <div className="form-group">
-          <label htmlFor = "researchExperience">Research Experience</label>
+          <label>Research Experience</label>
           <select
-            id="researchExperience"
             name="researchExperience"
             value={formData.researchExperience}
             onChange={handleChange}
@@ -143,8 +138,8 @@ const Signup: React.FC = () => {
         {errors.general && <div className="error">{errors.general}</div>}
 
         <div className="form-group">
-          <label htmlFor="role">Role</label>
-          <select id="role" name="role" value={formData.role} onChange={handleChange} required>
+          <label>Role</label>
+          <select name="role" value={formData.role} onChange={handleChange} required>
             <option value="Researcher">Researcher</option>
             <option value="Admin">Admin</option>
             <option value="Reviewer">Reviewer</option>
@@ -152,9 +147,8 @@ const Signup: React.FC = () => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="contact">Contact Number</label>
+          <label>Contact Number</label>
           <input
-            id="contact"
             type="tel"
             name="contact"
             value={formData.contact}
@@ -164,9 +158,8 @@ const Signup: React.FC = () => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="department">Department</label>
+          <label>Department</label>
           <input
-            id="department"
             type="text"
             name="department"
             value={formData.department}
@@ -176,9 +169,8 @@ const Signup: React.FC = () => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="academicrole">Academic Role</label>
+          <label>Academic Role</label>
           <select
-            id="academicrole"
             name="academicrole"
             value={formData.academicrole}
             onChange={handleChange}
@@ -192,7 +184,7 @@ const Signup: React.FC = () => {
 
         {renderRoleFields()}
 
-        <button id="submit" type="submit" className="submit-btn">
+        <button type="submit" className="submit-btn">
           Register
         </button>
       </form>

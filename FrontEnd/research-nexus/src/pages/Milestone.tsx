@@ -5,7 +5,7 @@ import { Container, Row, Col, Card, Button, Badge, Alert, Table } from 'react-bo
 import { FiArrowLeft, FiPlus, FiEdit2, FiTrash2, FiCheck, FiClock } from 'react-icons/fi';
 import { getMilestonesByProject, createMilestone, updateMilestone, deleteMilestone } from '../../api/milestones';
 import StatusPieChart from '../components/StatusPieChart';
-import { Project } from '../components/dashboard/CollaboratorDashboard';
+import {Project} from '../components/dashboard/CollaboratorDashboard';
 import './Milestones.css';
 
 interface Milestone {

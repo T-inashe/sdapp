@@ -189,7 +189,14 @@ const NotificationsPage: React.FC = () => {
     
     return groups;
   };
-
+  
+  const getDashboardTitle = () => {
+    const role = user?.role;
+    if (role === 'Researcher') return '/collaboratordashboard';
+    if (role === 'Reviewer') return '/reviewerdashboard';
+    if (role === 'Admin') return '/admindashboard';
+    return '/'; 
+  };
   const groupedNotifications = groupNotificationsByDate();
   const dateGroups = Object.keys(groupedNotifications).sort((a, b) => 
     new Date(b).getTime() - new Date(a).getTime()
@@ -204,9 +211,9 @@ const NotificationsPage: React.FC = () => {
         <Col>
           <div className="d-flex justify-content-between align-items-center">
             <div>
-              <Link to="/collaboratordashboard" className="btn btn-link text-decoration-none ps-0">
-                <FiArrowLeft /> Back to Dashboard
-              </Link>
+            <Link to={getDashboardTitle()} className="btn btn-link text-decoration-none ps-0">
+              <FiArrowLeft /> Back to Dashboard
+            </Link>
               <h2 className="mt-2 mb-0">Notifications</h2>
               <p className="text-muted">
                 Manage your research collaboration notifications

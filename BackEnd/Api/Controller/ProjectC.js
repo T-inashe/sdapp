@@ -1,11 +1,28 @@
 import ResearchProject from "../Models/Project.js";
 import Notification from "../Models/Notification.js";
 
+<<<<<<< HEAD
 export const createResearchProject = async (payload) => {
   try {
     // Add the userId (creator) to the project data
     const newProject = new ResearchProject({
       ...payload,
+=======
+export const createResearchProject = async (payload, file) => {
+  try {
+
+    let fileData = {};
+    if (file) {
+      fileData = {
+        data: file.buffer,
+        contentType: file.mimetype,
+        originalName: file.originalname,
+      };
+    }
+    const newProject = new ResearchProject({
+      ...payload,
+      file: fileData,
+>>>>>>> 4482fc85418b87cede89550053f57f8b0c389c45
     });
 
     const savedProject = await newProject.save();
@@ -25,11 +42,27 @@ export const createResearchProject = async (payload) => {
   }
 };
 
+<<<<<<< HEAD
+=======
+export const getReviewByReviewer = async (file) => {
+  try {
+    const file = await ResearchProject.find({ file:file });
+    return file;
+  } catch (error) {
+    throw new Error(`Error fetching Review for reviewer ${file}: ${error.message}`);
+  }
+};
+
+>>>>>>> 4482fc85418b87cede89550053f57f8b0c389c45
 
 // READ all research projects
 export const getAllResearchProjects = async () => {
   try {
+<<<<<<< HEAD
     const projects = await ResearchProject.find();
+=======
+    const projects = await ResearchProject.find().populate('creator');
+>>>>>>> 4482fc85418b87cede89550053f57f8b0c389c45
     return projects;
   } catch (error) {
     throw new Error(`Error fetching research projects: ${error.message}`);

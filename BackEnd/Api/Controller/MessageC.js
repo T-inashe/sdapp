@@ -1,9 +1,29 @@
 import Message from '../Models/Message.js';
 
 // Create a new message
+<<<<<<< HEAD
 export const createMessage = async (payload) => {
   try {
     const newMessage = new Message(payload);
+=======
+export const createMessage = async (payload, file) => {
+  let fileData = {};
+
+  if (file) {
+    fileData = {
+      data: file.buffer,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+    };
+  }
+
+  try {
+    const newMessage = new Message({
+      ...payload,
+      file: fileData,
+    });
+
+>>>>>>> 4482fc85418b87cede89550053f57f8b0c389c45
     const savedMessage = await newMessage.save();
     return savedMessage;
   } catch (error) {
@@ -11,6 +31,42 @@ export const createMessage = async (payload) => {
   }
 };
 
+<<<<<<< HEAD
+=======
+
+import mongoose from 'mongoose';
+
+export const getUnreadMessageCountsByReceiver = async (receiverId) => {
+  try {
+    const counts = await Message.aggregate([
+      {
+        $match: {
+          receiver: new mongoose.Types.ObjectId(receiverId), // FIXED: ensure correct type
+          read: false
+        }
+      },
+      {
+        $group: {
+          _id: '$sender',
+          unreadCount: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          senderId: '$_id',
+          unreadCount: 1,
+          _id: 0
+        }
+      }
+    ]);
+    return counts;
+  } catch (error) {
+    throw new Error(`Error fetching unread counts: ${error.message}`);
+  }
+};
+
+
+>>>>>>> 4482fc85418b87cede89550053f57f8b0c389c45
 export const getMessagesByUser = async (userId) => {
   try {
     const messages = await Message.find({

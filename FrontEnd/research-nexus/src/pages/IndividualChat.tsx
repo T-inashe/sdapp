@@ -24,11 +24,11 @@ interface Message {
   } 
 }
 
-interface ChatPageProps {
+interface IndividualChatPageProps {
   setActiveTab?: (tab: string) => void;
 }
 
-const ChatPage: React.FC<ChatPageProps> = ({ setActiveTab }) => {
+const IndividualChatPage: React.FC<IndividualChatPageProps> = ({ setActiveTab }) => {
   const { user } = useContext(AuthContext);
   const { id } = useParams<{ id: string }>();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -40,16 +40,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ setActiveTab }) => {
   const [receiver, setReceiver] = useState<{ fname: string; lname: string } | null>(null);
 
   useEffect(() => {
-    if (user?.id) {
-      fetchMessages();
-    }
     fetchMessagesbyUsers();
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (user?.id) {
-      fetchMessagesbyUsers();
-    }
   }, [user?.id]);
 
   useEffect(() => {
@@ -61,7 +52,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ setActiveTab }) => {
 useEffect(() => {
   const fetchReceiverDetails = async () => {
     try {
-      const response = await axios.get(`${config.API_URL}/api/users/${id}`); // Assuming your API returns user details by ID
+      const response = await axios.get(`${config.API_URL}/api/users/${id}`); 
       setReceiver(response.data); // Set the receiver's details
     } catch (error) {
       console.error('Failed to fetch receiver details', error);
@@ -73,17 +64,8 @@ useEffect(() => {
   }
 }, [id]);
 
-  const fetchMessages = async () => {
-    try {
-      const response = await axios.get(`${config.API_URL}/api/message/project/${id}`);
-      const fetchedMessages: Message[] = response.data;
-      setMessages(fetchedMessages);
-    } catch (error) {
-      console.error('Failed to fetch messages', error);
-    }
-  };
-  
-  const fetchMessagesbyUsers = async () => {
+ 
+const fetchMessagesbyUsers = async () => {
   const userA = user?.id;
   const userB = id; // from route params
 
@@ -97,11 +79,13 @@ useEffect(() => {
       params: { userA, userB },
     });
     const fetchedMessages: Message[] = response.data;
-    setMessages(fetchedMessages);
+    const filteredMessages = fetchedMessages.filter((msg) => !msg.projectId);
+    setMessages(filteredMessages);
   } catch (error) {
     console.error('Failed to fetch messages', error);
   }
 };
+
 
 const getDashboardTitle = () => {
     const role = user?.role;
@@ -130,7 +114,6 @@ const getDashboardTitle = () => {
     const formData = new FormData();
     formData.append('sender', user?.id || '');
     formData.append('receiver', otherUserId);
-    formData.append('projectId', id || '');
     if (newMessage) formData.append('content', newMessage);
     if (attachedFile) formData.append('file', attachedFile);
     const response = await axios.post(`${config.API_URL}/api/message`, formData, {
@@ -254,4 +237,4 @@ const getDashboardTitle = () => {
   );
 };
 
-export default ChatPage;
+export default IndividualChatPage;

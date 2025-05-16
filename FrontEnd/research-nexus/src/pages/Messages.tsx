@@ -26,7 +26,6 @@ const MessageInvitesPage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchInvites();
     fetchUserInvites();
     fetchProjectDetails();
   }, []);
@@ -43,23 +42,7 @@ const MessageInvitesPage: React.FC = () => {
       fetchProjectDetails();
     }
   }, [invites]);  
-  
-  const fetchInvites = async () => {
-    try {
-      const res = await axios.get(`${config.API_URL}/api/message/user/${user?.id}`);
-      const uniqueInvites = res.data.reduce((acc: Message[], message: Message) => {
-        if (!acc.some(msg => msg.projectId === message.projectId)) {
-          acc.push(message);
-        }
-        return acc;
-      }, []);
-      setInvites(uniqueInvites);
-    } catch (error) {
-      console.error('Error fetching invites:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const checkActiveProjects = async (messages: Message[]) => {
     try {
@@ -144,39 +127,39 @@ const MessageInvitesPage: React.FC = () => {
   };
 
   const [senderRole, setSenderRoles] = useState<{ [projectId: string]: string }>({});
+const fetchUserInvites = async () => {
+  try {
+    const res = await axios.get(`${config.API_URL}/api/message/user/${user?.id}`);
+    
+    const roleMap: { [projectId: string]: string } = {};
+    const seenProjects = new Set();
+    const uniqueInvites: Message[] = [];
 
-  const fetchUserInvites = async () => {
-    try {
-      const res = await axios.get(`${config.API_URL}/api/message/user/${user?.id}`);
-  
-      const roleMap: { [projectId: string]: string } = {};
-      const seenProjects = new Set();
-      const uniqueInvites: Message[] = [];
-  
-      for (const message of res.data) {
-        if (!seenProjects.has(message.projectId)) {
-          seenProjects.add(message.projectId);
-          uniqueInvites.push(message);
-  
-          try {
-            const projectRes = await axios.get(`${config.API_URL}/api/createproject/projects/${message.projectId}`);
+    const messagesWithProjectId = res.data.filter((msg: Message) => msg.projectId);
 
-              roleMap[message.projectId] = projectRes.data.creator.role;
-            
-          } catch (error) {
-            console.error(`Error fetching project ${message.projectId} data:`, error);
-          }
+    for (const message of messagesWithProjectId) {
+      if (!seenProjects.has(message.projectId)) {
+        seenProjects.add(message.projectId);
+        uniqueInvites.push(message);
+
+        try {
+          const projectRes = await axios.get(`${config.API_URL}/api/createproject/projects/${message.projectId}`);
+          roleMap[message.projectId] = projectRes.data.creator.role;
+        } catch (error) {
+          console.error(`Error fetching project ${message.projectId} data:`, error);
         }
       }
-  
-      setInvites(uniqueInvites);        // Only first message per project
-      setSenderRoles(roleMap);          // Only store role if user is the creator
-    } catch (error) {
-      console.error('Error fetching invites:', error);
-    } finally {
-      setLoading(false);
     }
-  };
+
+    setInvites(uniqueInvites);        // Only first message per project
+    setSenderRoles(roleMap);          // Only store role if user is the creator
+  } catch (error) {
+    console.error('Error fetching invites:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
   
   const [projectDetails, setProjectDetails] = useState<Record<string, any>>({});
 
@@ -210,7 +193,7 @@ const MessageInvitesPage: React.FC = () => {
     navigate(`/chat/${message.projectId}`);
   };
 
-  if (loading) return <div className="messages-spinner" role="status"><Spinner animation="border" /></div>;
+  if (loading) return <div className="messages-spinner"><Spinner animation="border" /></div>;
 
   return (
     <Container className="messages-container">

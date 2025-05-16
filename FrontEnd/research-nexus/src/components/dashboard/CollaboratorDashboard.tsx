@@ -11,6 +11,7 @@ import config from '../../config';
 import ResearchFundingDashboard from './ResearchFundingDashboard';
 import { FiDollarSign } from 'react-icons/fi';
 import MyDashboard from './MyDashboard';
+import MilestoneDashboard from './MilestoneDashboard';
 
 interface Project {
   _id: number;
@@ -349,6 +350,7 @@ const CollaboratorDashboard: React.FC = () => {
 >
   <FiFileText className="me-2" /> My Dashboard
 </Nav.Link>
+
           <Nav.Link
             className={activeTab === 'opportunities' ? 'active' : ''}
             onClick={() => setActiveTab('opportunities')}
@@ -367,6 +369,12 @@ const CollaboratorDashboard: React.FC = () => {
           >
             <FiUsers className="me-2" /> Collaborators
           </Nav.Link>
+          <Nav.Link
+  className={activeTab === 'milestonedashboard' ? 'active' : ''}
+  onClick={() => setActiveTab('milestonedashboard')}
+>
+  <FiFileText className="me-2" /> Milestones
+</Nav.Link>
           <Nav.Link
             className={activeTab === 'messages' ? 'active' : ''}
             onClick={() => setActiveTab('messages')}
@@ -840,6 +848,7 @@ const CollaboratorDashboard: React.FC = () => {
 
         {activeTab === 'messages' && <MessagePage />}
         {activeTab === 'mydashboard' && <MyDashboard />}
+        {activeTab === 'milestonedashboard' && <MilestoneDashboard />}
         {activeTab === 'calendar' && (
           <Container fluid>
             <Row className="mb-4">

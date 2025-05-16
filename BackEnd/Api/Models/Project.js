@@ -69,9 +69,31 @@ const ResearchProjectSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    funder: {
+      type: String,
+      default:"No funder available"
+    },
+    awarded: {
+      type: Number,
+      default: 0,
+    },
+    spent: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    remaining: {
+    type: Number,
+    default: 0,
+  },
     status: {
       type: String,
       enum: ['Active', 'Pending Collab', 'Declined', 'Active Collab',"Cancelled"], 
+      default: 'Active',
+    },
+    fundstatus: {
+      type: String,
+      enum: ['Active',"Expired","Low Funds","Out Of Funds"], 
       default: 'Active',
     },
     collaborators: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],

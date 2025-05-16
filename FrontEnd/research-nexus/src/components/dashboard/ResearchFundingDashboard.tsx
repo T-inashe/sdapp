@@ -7,11 +7,16 @@ import config from '../../config';
 import FundingVisualization from './FundingVisualization';
 
 interface Project {
-  _id: number;
+  _id: string;
   title: string;
   funding_available: boolean;
   funding_amount: string | null;
+  funder:string;
+  awarded:Number;
+  spent:Number;
+  remaining:Number;
   end_date: string;
+  fundstatus:string;
 }
 
 interface FundingDetails {
@@ -22,7 +27,7 @@ interface FundingDetails {
   spent: number;
   remaining: number;
   endDate: string;
-  status: 'Active' | 'Expired' | 'Low Funds';
+  fundstatus: 'Active' | 'Expired' | 'Low Funds'| 'Out Of Funds';
 }
 
 interface Expense {
@@ -61,7 +66,6 @@ const ResearchFundingDashboard: React.FC = () => {
     funder: '',
     amount: 0,
     endDate: '',
-    notes: ''
   });
 
   useEffect(() => {
@@ -75,60 +79,34 @@ const ResearchFundingDashboard: React.FC = () => {
         if (response.data) {
           setProjects(response.data);
           
-          // Generate mock funding data based on projects
-          const mockFundingData = response.data.map((project: Project) => {
-            const fundingAmount = project.funding_amount 
-              ? parseFloat(project.funding_amount.replace(/[^0-9.-]+/g, '')) 
-              : 0;
-            
-            // Random spent amount between 0 and funding
-            const spent = fundingAmount > 0 
-              ? Math.floor(Math.random() * (fundingAmount * 0.8))
-              : 0;
-            
-            const remaining = fundingAmount - spent;
-            let status: 'Active' | 'Expired' | 'Low Funds' = 'Active';
-            
-            if (new Date(project.end_date) < new Date()) {
-              status = 'Expired';
-            } else if (remaining < fundingAmount * 0.2) {
-              status = 'Low Funds';
-            }
-            
+          const Data = response.data.map((project: Project) => {
             return {
               projectId: project._id,
               projectTitle: project.title,
-              funder: ['National Science Foundation', 'NIH', 'University Grant', 'Industry Partner'][Math.floor(Math.random() * 4)],
-              awarded: fundingAmount,
-              spent: spent,
-              remaining: remaining,
+              funder: project.funder,
+              awarded: project.awarded,
+              spent: project.spent,
+              remaining: project.remaining,
               endDate: project.end_date,
-              status: status
+              fundstatus: project.fundstatus
             };
           });
           
-          setFundingDetails(mockFundingData);
-          
-          // Generate mock expense data
-          const mockExpenses: Expense[] = [];
-          mockFundingData.forEach((funding: { spent: number; projectId: any; }) => {
-            const expenseCount = Math.floor(Math.random() * 5) + 1;
-            const categories = ['Equipment', 'Personnel', 'Travel', 'Supplies', 'Other'];
-            
-            for (let i = 0; i < expenseCount; i++) {
-              const amount = Math.floor(Math.random() * (funding.spent / expenseCount));
-              mockExpenses.push({
-                id: `exp-${funding.projectId}-${i}`,
-                projectId: funding.projectId,
-                description: `${categories[i % categories.length]} expense ${i + 1}`,
-                amount: amount,
-                date: new Date(Date.now() - Math.floor(Math.random() * 10000000000)).toISOString().split('T')[0],
-                category: categories[i % categories.length]
-              });
-            }
-          });
-          
-          setExpenses(mockExpenses);
+          setFundingDetails(Data);
+       const allExpenses: Expense[] = [];
+
+        for (const project of response.data) {
+          try {
+            const expenseRes = await fetch(`${config.API_URL}/api/expense/project/${project._id}`);
+            if (!expenseRes.ok) throw new Error('Failed to fetch expenses');
+            const expenseData: Expense[] = await expenseRes.json();
+            allExpenses.push(...expenseData);
+          } catch (err) {
+            console.error(`Error fetching expenses for project ${project._id}:`, err);
+          }
+        }
+
+        setExpenses(allExpenses);
         } else {
           console.error('Failed to load projects:', response.data);
         }
@@ -171,57 +149,91 @@ const ResearchFundingDashboard: React.FC = () => {
         return 'danger';
       case 'Low Funds':
         return 'warning';
+      case 'Out Of Funds':
+        return 'danger';
       default:
         return 'secondary';
     }
   };
   
-  const handleAddExpense = () => {
-    if (!selectedProject) return;
-    
-    const newExpenseItem: Expense = {
-      id: `exp-${selectedProject.projectId}-${Date.now()}`,
+const handleAddExpense = async () => {
+  if (!selectedProject) return;
+
+  setIsLoading(true);
+  setError('');
+
+  try {
+    const payload = {
       projectId: selectedProject.projectId,
       description: newExpense.description,
       amount: newExpense.amount,
       date: newExpense.date,
       category: newExpense.category
     };
-    
-    // Update expenses
-    setExpenses([...expenses, newExpenseItem]);
-    setSelectedProjectExpenses([...selectedProjectExpenses, newExpenseItem]);
-    
-    // Update funding details
-    const updatedFundingDetails = fundingDetails.map(fund => {
-      if (fund.projectId === selectedProject.projectId) {
-        const newSpent = fund.spent + newExpense.amount;
-        const newRemaining = fund.awarded - newSpent;
-        
-        let newStatus = fund.status;
-        if (newRemaining <= 0) {
-          newStatus = 'Low Funds';
+
+    // 1. POST the new expense
+    const response = await axios.post(`${config.API_URL}/api/expense`, payload, {
+      withCredentials: true
+    });
+
+    const newExpenseItem = response.data;
+
+    // 2. Update local expense states
+    setExpenses(prev => [...prev, newExpenseItem]);
+    setSelectedProjectExpenses(prev => [...prev, newExpenseItem]);
+
+    // 3. Update project 'spent' and 'remaining' on the backend
+    const fund = fundingDetails.find(f => f.projectId === selectedProject.projectId);
+    if (fund) {
+      const newSpent = fund.spent + newExpense.amount;
+      const newRemaining = fund.awarded - newSpent;
+      
+        let newStatus=fund.fundstatus;
+         if (newRemaining <= 0) {
+          newStatus = 'Out Of Funds';
         }
-        
-        return {
-          ...fund,
+
+
+      await axios.put(
+        `${config.API_URL}/api/createproject/projects/${selectedProject.projectId}`,
+        {
           spent: newSpent,
           remaining: newRemaining,
-          status: newStatus
+          fundstatus:newStatus
+        },
+        { withCredentials: true }
+      );
+    }
+
+    // 4. Fetch updated project info from backend
+    const projectResponse = await axios.get(`${config.API_URL}/api/createproject/projects/${selectedProject.projectId}`, {
+      withCredentials: true
+    });
+
+    const updatedProjectData = projectResponse.data;
+
+    // 5. Replace local fundingDetails with updated data from backend
+    const newFundingDetails = fundingDetails.map(fund => {
+      if (fund.projectId === selectedProject.projectId) {
+        return {
+          ...fund,
+          spent: updatedProjectData.spent,
+          remaining: updatedProjectData.remaining,
+          fundstatus: updatedProjectData.fundstatus
         };
       }
       return fund;
     });
-    
-    setFundingDetails(updatedFundingDetails);
-    
-    // Update selected project
-    const updatedProject = updatedFundingDetails.find(fund => fund.projectId === selectedProject.projectId);
+
+    setFundingDetails(newFundingDetails);
+
+    // 6. Update selected project info
+    const updatedProject = newFundingDetails.find(f => f.projectId === selectedProject.projectId);
     if (updatedProject) {
       setSelectedProject(updatedProject);
     }
-    
-    // Reset and close modal
+
+    // 7. Reset the modal form
     setNewExpense({
       description: '',
       amount: 0,
@@ -229,53 +241,97 @@ const ResearchFundingDashboard: React.FC = () => {
       date: new Date().toISOString().split('T')[0]
     });
     setShowExpenseModal(false);
-  };
-  
-  const handleAddFunding = () => {
-    if (!selectedProject) return;
-    
-    // Update funding details
-    const updatedFundingDetails = fundingDetails.map(fund => {
+
+  } catch (error) {
+    console.error('Error adding expense:', error);
+    setError('Failed to add expense');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
+
+const handleAddFunding = async () => {
+  if (!selectedProject) return;
+
+  try {
+    setIsLoading(true);
+
+    const updatedFundingDetails = await Promise.all(fundingDetails.map(async (fund) => {
       if (fund.projectId === selectedProject.projectId) {
         const newAwarded = fund.awarded + newFunding.amount;
         const newRemaining = fund.remaining + newFunding.amount;
-        
-        let newStatus = 'Active';
+
+        let newStatus=fund.fundstatus;
         if (new Date(fund.endDate) < new Date()) {
           newStatus = 'Expired';
         } else if (newRemaining < newAwarded * 0.2) {
           newStatus = 'Low Funds';
         }
-        
-        return {
-          ...fund,
+        else if(newRemaining> fund.spent){
+          newStatus = 'Active'
+        }
+
+        // Perform only PUT to update funding info
+        const putPayload = {
+          funder: newFunding.funder,
           awarded: newAwarded,
           remaining: newRemaining,
-          status: newStatus as 'Active' | 'Expired' | 'Low Funds',
-          endDate: newFunding.endDate || fund.endDate
+          fundstatus: newStatus,
+          end_date: newFunding.endDate || fund.endDate,
+        };
+
+        console.log(putPayload)
+        await axios.put(
+        `${config.API_URL}/api/createproject/projects/${fund.projectId}`,
+          putPayload,
+        { withCredentials: true }
+      );
+
+
+      const projectResponse = await axios.get(`${config.API_URL}/api/createproject/projects/${selectedProject.projectId}`, {
+      withCredentials: true
+    });
+      const updatedProject = projectResponse.data;
+
+        return {
+          ...fund,
+          funder:updatedProject.funder,
+          awarded: updatedProject.awarded,
+          remaining: updatedProject.remaining,
+          fundstatus: updatedProject.fundstatus,
+          endDate: updatedProject.end_date,
+          updatedFundingAmount: updatedProject.funding_amount,
         };
       }
       return fund;
-    });
-    
+    }));
+
     setFundingDetails(updatedFundingDetails);
-    
-    // Update selected project
+
     const updatedProject = updatedFundingDetails.find(fund => fund.projectId === selectedProject.projectId);
     if (updatedProject) {
       setSelectedProject(updatedProject);
     }
-    
-    // Reset and close modal
+
     setNewFunding({
       funder: '',
       amount: 0,
       endDate: '',
-      notes: ''
     });
+
     setShowFundingModal(false);
-  };
-  
+
+  } catch (error) {
+    console.error('Error updating funding:', error);
+    setError('Failed to update funding. Please try again.');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
   const renderBackButton = () => (
     <Row className="mb-3">
       <Col>
@@ -371,10 +427,10 @@ const ResearchFundingDashboard: React.FC = () => {
             </Card>
           </Col>
           <Col md={3}>
-            <Card bg={getStatusBadge(selectedProject?.status || 'Active')}>
+            <Card bg={getStatusBadge(selectedProject?.fundstatus || 'Active')}>
               <Card.Body className="text-center text-white">
                 <h6>Funding Status</h6>
-                <h4>{selectedProject?.status}</h4>
+                <h4>{selectedProject?.fundstatus}</h4>
                 <div>Expires: {selectedProject ? new Date(selectedProject.endDate).toLocaleDateString() : ''}</div>
               </Card.Body>
             </Card>
@@ -525,7 +581,7 @@ const ResearchFundingDashboard: React.FC = () => {
                             </td>
                             <td>{new Date(fund.endDate).toLocaleDateString()}</td>
                             <td>
-                              <Badge bg={getStatusBadge(fund.status)}>{fund.status}</Badge>
+                              <Badge bg={getStatusBadge(fund.fundstatus)}>{fund.fundstatus}</Badge>
                             </td>
                             <td>
                               <div className="btn-group">
@@ -662,16 +718,6 @@ const ResearchFundingDashboard: React.FC = () => {
                 type="date" 
                 value={newFunding.endDate}
                 onChange={(e) => setNewFunding({...newFunding, endDate: e.target.value})}
-              />
-            </Form.Group>
-            
-            <Form.Group className="mb-3">
-              <Form.Label>Notes</Form.Label>
-              <Form.Control 
-                as="textarea" 
-                rows={3}
-                value={newFunding.notes}
-                onChange={(e) => setNewFunding({...newFunding, notes: e.target.value})}
               />
             </Form.Group>
           </Form>

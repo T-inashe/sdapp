@@ -11,6 +11,8 @@ import collaboratorRoutes from './Api/Routes/CollaboratorR.js';
 import messageRoutes from './Api/Routes/MessageR.js';
 import reviewRoutes from './Api/Routes/ReviewerR.js';
 import grantRoutes from './Api/Routes/GrantR.js';
+import ExpenseRoutes from './Api/Routes/ExpenseR.js';
+import FundingRoutes from './Api/Routes/FunderR.js';
 import './Authentication/passport.js';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
@@ -58,6 +60,8 @@ app.use('/api/collaborator', collaboratorRoutes);
 app.use('/api/message', messageRoutes);
 app.use('/api/review', reviewRoutes);
 app.use('/api/grant', grantRoutes);
+app.use('/api/expense', ExpenseRoutes);
+app.use('/api/funding', FundingRoutes);
 
 app.get("/", (req, res) => {
   res.send("we are live" + BACKEND_URL);

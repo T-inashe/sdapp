@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Form, Button } from 'react-bootstrap';
 import { 
   PieChart, Pie, BarChart, Bar, XAxis, YAxis, 
@@ -14,7 +14,7 @@ interface FundingDetails {
   spent: number;
   remaining: number;
   endDate: string;
-  status: 'Active' | 'Expired' | 'Low Funds';
+  fundstatus: 'Active' | 'Expired' | 'Low Funds'| 'Out Of Funds';
 }
 
 interface Expense {
@@ -41,7 +41,8 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
 }) => {
   const [chartType, setChartType] = useState<'allocation' | 'timeline' | 'category' | 'comparison'>('allocation');
   const [timeFrame, setTimeFrame] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly');
-  
+  const reportRef = useRef<HTMLDivElement>(null);
+   const [exporting, setExporting] = useState(false);
   // Prepare data for allocation chart (how remaining vs spent)
   const getAllocationData = () => {
     if (!selectedProject) {
@@ -54,6 +55,24 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
     ];
   };
   
+  const handleExportPDF = () => {
+  if (!reportRef.current) return;
+
+  setExporting(true);
+
+  try {
+    // @ts-ignore
+    const html2pdf = window.html2pdf;
+
+    html2pdf()
+      .from(reportRef.current)
+      .save()
+      .finally(() => setExporting(false));
+  } catch (err) {
+    console.error('PDF export error:', err);
+    setExporting(false);
+  }
+};
   // Prepare data for expense categories
   const getCategoryData = () => {
     if (!selectedProject) {
@@ -274,9 +293,9 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
     const totalAwarded = fundingDetails.reduce((sum, fund) => sum + fund.awarded, 0);
     const totalSpent = fundingDetails.reduce((sum, fund) => sum + fund.spent, 0);
     const totalRemaining = fundingDetails.reduce((sum, fund) => sum + fund.remaining, 0);
-    const activeProjects = fundingDetails.filter(fund => fund.status === 'Active').length;
-    const expiredProjects = fundingDetails.filter(fund => fund.status === 'Expired').length;
-    const lowFundsProjects = fundingDetails.filter(fund => fund.status === 'Low Funds').length;
+    const activeProjects = fundingDetails.filter(fund => fund.fundstatus === 'Active').length;
+    const expiredProjects = fundingDetails.filter(fund => fund.fundstatus === 'Expired').length;
+    const lowFundsProjects = fundingDetails.filter(fund => fund.fundstatus === 'Low Funds').length;
     
     return {
       totalAwarded,
@@ -292,7 +311,9 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
   const metrics = calculateMetrics();
   
   return (
-    <Container fluid>
+    
+    <Container fluid >
+      <div ref={reportRef}>
       <Row className="mb-4">
         <Col>
           <Card>
@@ -369,7 +390,7 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
         </Col>
       </Row>
       
-      <Row className="mb-3">
+      <Row className="mb-3" >
         <Col>
           <div className="d-flex justify-content-center">
             <div className="btn-group">
@@ -407,6 +428,17 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
           {renderChart()}
         </Col>
       </Row>
+      </div>
+       <div style={{ display: 'flex' }}>
+        <Button 
+          onClick={handleExportPDF} 
+          disabled={exporting}
+          style={{ marginLeft: 'auto' }}
+        >
+          {exporting ? 'Exporting...' : 'Export as PDF'}
+        </Button>
+      </div>
+
     </Container>
   );
 };

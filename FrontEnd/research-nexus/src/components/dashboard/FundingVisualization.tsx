@@ -153,7 +153,7 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
     switch(chartType) {
       case 'allocation':
         return (
-          <Card>
+          <Card  ref={reportRef}>
             <Card.Body>
               <h5 className="mb-4">Budget Allocation</h5>
               {selectedProject ? (
@@ -311,9 +311,7 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
   const metrics = calculateMetrics();
   
   return (
-    
-    <Container fluid >
-      <div ref={reportRef}>
+    <Container fluid>
       <Row className="mb-4">
         <Col>
           <Card>
@@ -390,7 +388,7 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
         </Col>
       </Row>
       
-      <Row className="mb-3" >
+      <Row className="mb-3">
         <Col>
           <div className="d-flex justify-content-center">
             <div className="btn-group">
@@ -428,16 +426,15 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
           {renderChart()}
         </Col>
       </Row>
-      </div>
        <div style={{ display: 'flex' }}>
-        <Button 
-          onClick={handleExportPDF} 
-          disabled={exporting}
-          style={{ marginLeft: 'auto' }}
-        >
-          {exporting ? 'Exporting...' : 'Export as PDF'}
-        </Button>
-      </div>
+      <Button 
+        onClick={handleExportPDF} 
+        disabled={exporting}
+        style={{ marginLeft: 'auto' }}
+      >
+        {exporting ? 'Exporting...' : 'Export as PDF'}
+      </Button>
+    </div>
 
     </Container>
   );

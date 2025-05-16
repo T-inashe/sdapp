@@ -7,13 +7,13 @@ import config from '../../config';
 import AuthContext from '../../context/AuthContext';
 
 interface Project {
-  _id: number;
+  _id: string;
   title: string;
 }
 
 interface Milestone {
   _id?: string;
-  projectId: number; // Changed from number | null to just number
+  projectId: string; 
   title: string;
   description: string;
   dueDate: string;
@@ -26,10 +26,10 @@ const MilestoneDashboard: React.FC = () => {
   const { user } = useContext(AuthContext);
   const [projects, setProjects] = useState<Project[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [selectedProject, setSelectedProject] = useState<number | null>(null);
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [currentMilestone, setCurrentMilestone] = useState<Milestone>({
-    projectId: 0, // Default value to satisfy the type
+    projectId: '', // Default value to satisfy the type
     title: '',
     description: '',
     dueDate: '',
@@ -73,90 +73,17 @@ const MilestoneDashboard: React.FC = () => {
     }
   };
 
-  const fetchMilestones = async (projectId: number) => {
+  const fetchMilestones = async (projectId: string) => {
     setIsLoading(true);
     try {
       // In a real application, this would be a real API endpoint
-      const response = await axios.get(`${config.API_URL}/api/milestones?projectId=${projectId}`, {
+      const response = await axios.get(`${config.API_URL}/api/milestone/project/${projectId}`, {
         withCredentials: true
       });
-      
-      // If the API isn't implemented yet, you can use mock data
-      if (!response.data) {
-        // Mock data for demonstration
-        const mockMilestones = [
-          {
-            _id: '1',
-            projectId: projectId,
-            title: 'Literature Review',
-            description: 'Complete comprehensive literature review',
-            dueDate: '2025-06-15',
-            status: 'completed',
-            assignedTo: user?.name || 'Team Member',
-            createdAt: '2025-05-01'
-          },
-          {
-            _id: '2',
-            projectId: projectId,
-            title: 'Data Collection',
-            description: 'Gather and organize research data',
-            dueDate: '2025-07-30',
-            status: 'in progress',
-            assignedTo: user?.name || 'Team Member',
-            createdAt: '2025-05-01'
-          },
-          {
-            _id: '3',
-            projectId: projectId,
-            title: 'Analysis',
-            description: 'Analyze collected data',
-            dueDate: '2025-08-15',
-            status: 'not started',
-            assignedTo: user?.name || 'Team Member',
-            createdAt: '2025-05-01'
-          }
-        ];
-        setMilestones(mockMilestones as Milestone[]);
-      } else {
-        setMilestones(response.data);
-      }
+      setMilestones(response.data);
+     
     } catch (err) {
       console.error('Failed to fetch milestones:', err);
-      
-      // If the API isn't implemented yet, use mock data
-      const mockMilestones = [
-        {
-          _id: '1',
-          projectId: projectId,
-          title: 'Literature Review',
-          description: 'Complete comprehensive literature review',
-          dueDate: '2025-06-15',
-          status: 'completed',
-          assignedTo: user?.name || 'Team Member',
-          createdAt: '2025-05-01'
-        },
-        {
-          _id: '2',
-          projectId: projectId,
-          title: 'Data Collection',
-          description: 'Gather and organize research data',
-          dueDate: '2025-07-30',
-          status: 'in progress',
-          assignedTo: user?.name || 'Team Member',
-          createdAt: '2025-05-01'
-        },
-        {
-          _id: '3',
-          projectId: projectId,
-          title: 'Analysis',
-          description: 'Analyze collected data',
-          dueDate: '2025-08-15',
-          status: 'not started',
-          assignedTo: user?.name || 'Team Member',
-          createdAt: '2025-05-01'
-        }
-      ];
-      setMilestones(mockMilestones as Milestone[]);
     } finally {
       setIsLoading(false);
     }
@@ -170,77 +97,50 @@ const MilestoneDashboard: React.FC = () => {
     });
   };
 
-  const saveMilestone = async () => {
-    try {
-      // Make sure we have a valid projectId
-      if (!selectedProject) {
-        setError('No project selected. Please select a project first.');
-        return;
-      }
-      
-      const milestoneToSave = {
-        ...currentMilestone,
-        projectId: selectedProject
-      };
-
-      if (isEditing && currentMilestone._id) {
-        // Update existing milestone
-        await axios.put(`${config.API_URL}/api/milestones/${currentMilestone._id}`, milestoneToSave, {
-          withCredentials: true
-        });
-        
-        // Update local state
-        setMilestones(milestones.map(m => 
-          m._id === currentMilestone._id ? milestoneToSave : m
-        ));
-      } else {
-        // Create new milestone
-        const response = await axios.post(`${config.API_URL}/api/milestones`, milestoneToSave, {
-          withCredentials: true
-        });
-        
-        // For demo, mock the API response
-        const newMilestone = {
-          ...milestoneToSave,
-          _id: response.data?._id || `temp-${Date.now()}`,
-          createdAt: new Date().toISOString()
-        };
-        
-        setMilestones([...milestones, newMilestone]);
-      }
-
-      // Close modal and reset form
-      setShowModal(false);
-      resetForm();
-    } catch (err) {
-      console.error('Failed to save milestone:', err);
-      
-      // Ensure we have a valid projectId before proceeding with the UI update
-      if (!selectedProject) {
-        setError('No project selected. Please select a project first.');
-        return;
-      }
-      
-      // For demo purposes, update the UI even if the API fails
-      if (isEditing && currentMilestone._id) {
-        setMilestones(milestones.map(m => 
-          m._id === currentMilestone._id ? {...currentMilestone, projectId: selectedProject} : m
-        ));
-      } else {
-        const newMilestone = {
-          ...currentMilestone,
-          _id: `temp-${Date.now()}`,
-          projectId: selectedProject,
-          createdAt: new Date().toISOString()
-        };
-        setMilestones([...milestones, newMilestone]);
-      }
-      
-      // Close modal and reset form
-      setShowModal(false);
-      resetForm();
+const saveMilestone = async () => {
+  try {
+    if (!selectedProject) {
+      setError('No project selected. Please select a project first.');
+      return;
     }
-  };
+
+    const milestoneToSave = {
+      ...currentMilestone,
+      projectId: selectedProject
+    };
+
+    if (isEditing && currentMilestone._id) {
+      // Update existing milestone
+      const response = await axios.put(
+        `${config.API_URL}/api/milestone/${currentMilestone._id}`,
+        milestoneToSave,
+        { withCredentials: true }
+      );
+
+      // Update local state with API response
+      setMilestones(milestones.map(m =>
+        m._id === currentMilestone._id ? response.data : m
+      ));
+    } else {
+      console.log(milestoneToSave)
+      // Create new milestone
+      const response = await axios.post(
+        `${config.API_URL}/api/milestone`,
+        milestoneToSave,
+        { withCredentials: true }
+      );
+
+      setMilestones([...milestones, response.data]);
+    }
+
+    setShowModal(false);
+    resetForm();
+  } catch (err) {
+    console.error('Failed to save milestone:', err);
+    setError('Failed to save milestone. Please try again.');
+  }
+};
+
 
   const editMilestone = (milestone: Milestone) => {
     setCurrentMilestone(milestone);
@@ -250,7 +150,7 @@ const MilestoneDashboard: React.FC = () => {
 
   const deleteMilestone = async (id: string) => {
     try {
-      await axios.delete(`${config.API_URL}/api/milestones/${id}`, {
+      await axios.delete(`${config.API_URL}/api/milestone/${id}`, {
         withCredentials: true
       });
       
@@ -258,15 +158,12 @@ const MilestoneDashboard: React.FC = () => {
       setMilestones(milestones.filter(m => m._id !== id));
     } catch (err) {
       console.error('Failed to delete milestone:', err);
-      
-      // For demo purposes, update the UI even if the API fails
-      setMilestones(milestones.filter(m => m._id !== id));
     }
   };
 
   const updateMilestoneStatus = async (id: string, newStatus: 'not started' | 'in progress' | 'completed') => {
     try {
-      await axios.patch(`${config.API_URL}/api/milestones/${id}/status`, { status: newStatus }, {
+      await axios.put(`${config.API_URL}/api/milestone/${id}`, { status: newStatus }, {
         withCredentials: true
       });
       
@@ -276,18 +173,12 @@ const MilestoneDashboard: React.FC = () => {
       ));
     } catch (err) {
       console.error('Failed to update milestone status:', err);
-      
-      // For demo purposes, update the UI even if the API fails
-      setMilestones(milestones.map(m => 
-        m._id === id ? { ...m, status: newStatus } : m
-      ));
     }
   };
-
   const resetForm = () => {
     // Ensure we have a valid default projectId
     setCurrentMilestone({
-      projectId: selectedProject || 0, // Use 0 as fallback
+      projectId: "", 
       title: '',
       description: '',
       dueDate: '',
@@ -355,15 +246,18 @@ const MilestoneDashboard: React.FC = () => {
                 <h4>Project Milestones</h4>
                 <div>
                   <Form.Select 
-                    value={selectedProject || ''} 
-                    onChange={(e) => setSelectedProject(Number(e.target.value))}
-                    className="d-inline-block me-2"
-                    style={{ width: 'auto' }}
-                  >
-                    {projects.map(project => (
-                      <option key={project._id} value={project._id}>{project.title}</option>
-                    ))}
-                  </Form.Select>
+                  value={selectedProject || ''} 
+                  onChange={(e) => setSelectedProject(e.target.value)}
+                  className="d-inline-block me-2"
+                  style={{ width: 'auto' }}
+                >
+                  {projects.map(project => (
+                    <option key={project._id} value={project._id}>
+                      {project.title}
+                    </option>
+                  ))}
+                </Form.Select>
+
                   <Button variant="primary" onClick={openNewMilestoneModal}>
                     <FiPlus className="me-1" /> New Milestone
                   </Button>

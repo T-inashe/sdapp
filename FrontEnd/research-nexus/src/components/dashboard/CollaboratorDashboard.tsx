@@ -344,6 +344,12 @@ const CollaboratorDashboard: React.FC = () => {
           <Badge bg="info">Collaborator</Badge>
         </div>
         <Nav className="flex-column sidebar-nav">
+                    <Nav.Link
+            className={activeTab === 'overview' ? 'active' : ''}
+            onClick={() => setActiveTab('overview')}
+          >
+            <FiFileText className="me-2" /> Overview
+          </Nav.Link>
 <Nav.Link
   className={activeTab === 'mydashboard' ? 'active' : ''}
   onClick={() => setActiveTab('mydashboard')}

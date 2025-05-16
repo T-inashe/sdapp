@@ -242,6 +242,93 @@
 .funding-progress .progress-bar {
   border-radius: 4px;
 }
+/* Dashboard.css (add these styles to your existing file) */
+
+/* Styles for the MyDashboard component */
+.widget-wrapper {
+  position: relative;
+}
+
+.widget-header {
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+.widget-wrapper:hover .widget-header {
+  opacity: 1;
+}
+
+/* Drag handler styles */
+[data-rbd-drag-handle-draggable-id] {
+  cursor: grab;
+}
+
+[data-rbd-drag-handle-draggable-id]:active {
+  cursor: grabbing;
+}
+
+/* Dragging styles */
+.dragging {
+  opacity: 0.5;
+}
+
+/* Card styles for widgets */
+.card {
+  transition: all 0.3s ease;
+  height: 100%;
+}
+
+.widget-wrapper:hover .card {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Widget content styles */
+.widget-content {
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+/* Skills badges in skills widget */
+.skills-section .badge {
+  font-size: 0.8rem;
+  padding: 0.35em 0.65em;
+}
+
+/* Notification widget styles */
+.notification-item {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+/* Calendar widget styles */
+.calendar-widget {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Empty state styles */
+.empty-widget-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.empty-widget-state i {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+/* Make sure the dashboard widgets have a minimum height */
+.widget-card {
+  min-height: 250px;
+}
 
 
 /* Media query for responsive sidebar */

@@ -22,6 +22,7 @@ import ProjectDetail from './components/ProjectDetails';
 import CollaboratorDashboard from './components/dashboard/CollaboratorDashboard';
 import ReviewerDashboard from './components/dashboard/ReviewerDashboard';
 import AdminDashboard from './components/dashboard/AdminDashboard';
+import MyDashboard from './components/dashboard/MyDashboard';
 
 // Protected route component
 // const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -45,6 +46,7 @@ const App: React.FC = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/collaboratordashboard" element={<CollaboratorDashboard />} />
           <Route path="/admindashboard" element={<AdminDashboard />} />
+          <Route path="/mydashboard" element={<MyDashboard />} />
           <Route path="/reviewerdashboard" element={<ReviewerDashboard />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/Collaborators/:id" element={<Collaborators />} />

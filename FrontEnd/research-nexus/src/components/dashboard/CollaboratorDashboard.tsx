@@ -8,9 +8,9 @@ import './Dashboard.css';
 import Calendar from './Calendar'; 
 import MessagePage from '../../pages/Messages';
 import config from '../../config';
-/* Add to imports at the top */
 import ResearchFundingDashboard from './ResearchFundingDashboard';
 import { FiDollarSign } from 'react-icons/fi';
+import MyDashboard from './MyDashboard';
 
 interface Project {
   _id: number;
@@ -343,12 +343,12 @@ const CollaboratorDashboard: React.FC = () => {
           <Badge bg="info">Collaborator</Badge>
         </div>
         <Nav className="flex-column sidebar-nav">
-          <Nav.Link
-            className={activeTab === 'overview' ? 'active' : ''}
-            onClick={() => setActiveTab('overview')}
-          >
-            <FiFileText className="me-2" /> Overview
-          </Nav.Link>
+<Nav.Link
+  className={activeTab === 'mydashboard' ? 'active' : ''}
+  onClick={() => setActiveTab('mydashboard')}
+>
+  <FiFileText className="me-2" /> My Dashboard
+</Nav.Link>
           <Nav.Link
             className={activeTab === 'opportunities' ? 'active' : ''}
             onClick={() => setActiveTab('opportunities')}
@@ -839,6 +839,7 @@ const CollaboratorDashboard: React.FC = () => {
         )}
 
         {activeTab === 'messages' && <MessagePage />}
+        {activeTab === 'mydashboard' && <MyDashboard />}
         {activeTab === 'calendar' && (
           <Container fluid>
             <Row className="mb-4">

@@ -1,7 +1,8 @@
-// // ResearchCollabLanding.jsx
-// import React from 'react';
+// ResearchCollabLanding.jsx
 import 'bootstrap/dist/css/bootstrap.min.css';
-// import image from '../assets/Hluma Nziweni.jpg'
+import image from '../assets/WhatsApp Image 2025-05-05 at 19.53.48_245a21d6.jpg'
+import CreatingImage from '../assets/image.png'
+import ResearcherImage from '../assets/Screenshot 2025-05-16 013634.png'
 import { Navbar, Nav, Container, Button, Card, Row, Col } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 
@@ -30,10 +31,10 @@ function ResearchCollabLanding() {
       </Navbar>
 
       {/* Hero Section */}
-      <section id="home" className="bg-primary text-white py-5 " style={{  minHeight: '87vh', display: 'flex', alignItems: 'center' }}>
+      <section id="home" className="bg-primary text-white py-5 " style={{  minHeight: '90vh', display: 'flex', alignItems: 'center' }}>
         <Container>
-          <Row className="align-items-center">
-            <Col lg={6} className="mb-4 mb-lg-0">
+          <Row className="align-items-center g-5">
+            <Col lg={6} className="mb-4 me-5 mb-lg-0 ">
               <h1 className="display-4 fw-bold mb-4">Connect. Collaborate. Innovate.</h1>
               <p className="lead mb-4">
                 A comprehensive platform for university researchers to find collaborators, 
@@ -44,12 +45,27 @@ function ResearchCollabLanding() {
                 <Button variant="outline-light" size="lg">Find Collaborators</Button>
               </div>
             </Col>
-            <Col lg={4} >
-              <img 
-                // src={image} 
-                alt="Researchers collaborating" 
-                className="img-fluid rounded shadow-lg" 
-              />
+            <Col lg={4} className="position-relative">
+              <div className="position-relative">
+                <img 
+                  src={image} 
+                  alt="Researchers collaborating" 
+                  className="img-fluid rounded-circle shadow-lg" 
+                  style={{
+                    border: '5px solid rgba(255, 255, 255, 0.3)',
+                    animation: 'float 3s ease-in-out infinite',
+                  }}
+                />
+                <style>
+                  {`
+                    @keyframes float {
+                      0% { transform: translateX(0px); }
+                      50% { transform: translateX(-15px); }
+                      100% { transform: translateX(0px); }
+                    }
+                  `}
+                </style>
+              </div>
             </Col>
           </Row>
         </Container>
@@ -118,7 +134,7 @@ function ResearchCollabLanding() {
           <Row className="align-items-center mb-5">
             <Col md={6} className="mb-4 mb-md-0">
               <img 
-                src="/api/placeholder/500/300" 
+                src={CreatingImage} 
                 alt="Creating a research project" 
                 className="img-fluid rounded shadow" 
               />
@@ -139,7 +155,7 @@ function ResearchCollabLanding() {
           <Row className="align-items-center mb-5 flex-md-row-reverse">
             <Col md={6} className="mb-4 mb-md-0">
               <img 
-                src="/api/placeholder/500/300" 
+                src={ResearcherImage} 
                 alt="Finding collaborators" 
                 className="img-fluid rounded shadow" 
               />

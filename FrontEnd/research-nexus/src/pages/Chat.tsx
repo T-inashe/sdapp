@@ -37,19 +37,14 @@ const ChatPage: React.FC<ChatPageProps> = ({ setActiveTab }) => {
   const navigate = useNavigate();
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [showFileInput, setShowFileInput] = useState(false);
-  const [receiver, setReceiver] = useState<{ fname: string; lname: string } | null>(null);
+  const [projectName, setProjectName] = useState<string>('');
+
 
   useEffect(() => {
     if (user?.id) {
       fetchMessages();
     }
-    fetchMessagesbyUsers();
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (user?.id) {
-      fetchMessagesbyUsers();
-    }
+    fetchProjectDetails();
   }, [user?.id]);
 
   useEffect(() => {
@@ -58,20 +53,15 @@ const ChatPage: React.FC<ChatPageProps> = ({ setActiveTab }) => {
 
   
 
-useEffect(() => {
-  const fetchReceiverDetails = async () => {
-    try {
-      const response = await axios.get(`${config.API_URL}/api/users/${id}`); // Assuming your API returns user details by ID
-      setReceiver(response.data); // Set the receiver's details
-    } catch (error) {
-      console.error('Failed to fetch receiver details', error);
-    }
-  };
-
-  if (id) {
-    fetchReceiverDetails();
+const fetchProjectDetails = async () => {
+  try {
+    const response = await axios.get(`${config.API_URL}/api/createproject/projects/${id}`);
+    setProjectName(response.data.title); // Adjust according to your API's response
+  } catch (error) {
+    console.error('Failed to fetch project details', error);
   }
-}, [id]);
+};
+
 
   const fetchMessages = async () => {
     try {
@@ -82,26 +72,6 @@ useEffect(() => {
       console.error('Failed to fetch messages', error);
     }
   };
-  
-  const fetchMessagesbyUsers = async () => {
-  const userA = user?.id;
-  const userB = id; // from route params
-
-  if (!userA || !userB) {
-    console.warn('Both userA and userB are required to fetch messages.');
-    return;
-  }
-
-  try {
-    const response = await axios.get(`${config.API_URL}/api/message`, {
-      params: { userA, userB },
-    });
-    const fetchedMessages: Message[] = response.data;
-    setMessages(fetchedMessages);
-  } catch (error) {
-    console.error('Failed to fetch messages', error);
-  }
-};
 
 const getDashboardTitle = () => {
     const role = user?.role;
@@ -113,29 +83,17 @@ const getDashboardTitle = () => {
 
   const sendMessage = async () => {
   if (!newMessage.trim()) return;
-
-  const otherUserId = messages.length
-    ? (messages[0].sender._id !== user?.id
-        ? messages[0].sender._id
-        : messages[0].receiver._id)
-    : id;
-
-  if (!otherUserId) {
-    console.error('Cannot determine receiver');
-    return;
-  }
-
-
+  
   try {
     const formData = new FormData();
     formData.append('sender', user?.id || '');
-    formData.append('receiver', otherUserId);
     formData.append('projectId', id || '');
     if (newMessage) formData.append('content', newMessage);
     if (attachedFile) formData.append('file', attachedFile);
     const response = await axios.post(`${config.API_URL}/api/message`, formData, {
     });
 
+    console.log(response.data)
     const sentMessage = response.data;
 
     // Immediately mark as delivered
@@ -183,11 +141,7 @@ const getDashboardTitle = () => {
         <div className="chat-header">
           <div className="user-info">
             <strong>
-                <strong>
-      {receiver 
-        ? `${receiver.fname} ${receiver.lname}` 
-        : (messages.length > 0 ? `${messages[0].receiver.fname} ${messages[0].receiver.lname}` : "Loading...")}
-    </strong>
+              <strong>{projectName || "Loading project..."}</strong>
             </strong>
           </div>
         </div>
@@ -198,6 +152,15 @@ const getDashboardTitle = () => {
               key={msg._id}
               className={`chat-message ${msg.sender._id === user?.id ? 'sent' : 'received'}`}
             >
+              <div
+              className="sender-name"
+              style={{
+                color: msg.sender._id === user?.id ? '#4CAF50' : '#2196F3', // green for current user, blue for others
+                fontWeight: 'bold'
+              }}
+            >
+              {msg.sender.fname} :
+            </div>
               <div className="message-content">{msg.content}</div>
               {msg.file && (
                 <a href={`${config.API_URL}/api/message/${msg._id}/download/`} download>
@@ -219,7 +182,6 @@ const getDashboardTitle = () => {
           ))}
           <div ref={messagesEndRef} />
         </div>
-
         <div className="chat-input-wrapper">
           {showFileInput && (
             <div className="file-upload-slide">

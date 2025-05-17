@@ -77,16 +77,16 @@ const Collaborators: React.FC = () => {
     }
   
     try {
-      await axios.post(`${config.API_URL}/api/message`, {
+      await axios.post(`${config.API_URL}/api/collaborator`, {
         sender: user.id,
         receiver: receiverId,
-        projectId: id,
-        content
+        project: id,
+        message:content
       }, {
         withCredentials: true
       });
   
-      alert('Message sent!');
+      alert('Invite sent!');
       navigate('/collaboratordashboard');
       setMessages(prev => ({ ...prev, [receiverId]: '' }));
   

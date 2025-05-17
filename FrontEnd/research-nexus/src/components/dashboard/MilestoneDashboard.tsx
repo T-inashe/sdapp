@@ -22,6 +22,17 @@ interface Milestone {
   createdAt?: string;
 }
 
+interface User {
+  _id: string;
+  fname: string;
+  lname: string;
+  avatar?: string;
+  academicRole: string;
+  department: string;
+  researchExperience: string;
+  researcharea: string;
+}
+
 const MilestoneDashboard: React.FC = () => {
   const { user } = useContext(AuthContext);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -41,6 +52,8 @@ const MilestoneDashboard: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [collaborators, setCollaborators] = useState<User[]>([]);
+  
 
 const handleExportPDF = async () => {
   if (!reportRef.current) return;
@@ -88,6 +101,13 @@ const handleExportPDF = async () => {
       fetchMilestones(selectedProject);
     }
   }, [selectedProject]);
+
+  useEffect(() => {
+  if (selectedProject) {
+    fetchCollaborators(selectedProject);
+  }
+}, [selectedProject]);
+
 
   const fetchProjects = async () => {
     setIsLoading(true);
@@ -245,6 +265,22 @@ const saveMilestone = async () => {
         return 'secondary';
     }
   };
+  
+      const fetchCollaborators = async (projectId: string) => {
+        try {
+          const response = await axios.get(`${config.API_URL}/api/createproject/projects/${projectId}/collaborators`, {
+            withCredentials: true
+          });
+          console.log(response.data)
+          setCollaborators(response.data);
+        } catch (err) {
+          console.error(err);
+          setError('Failed to fetch collaborators.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+  
 
   const formatDate = (dateString: string): string => {
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -366,7 +402,13 @@ const saveMilestone = async () => {
                               <small className="text-muted">{milestone.description}</small>
                             </td>
                             <td>{formatDate(milestone.dueDate)}</td>
-                            <td>{milestone.assignedTo}</td>
+                            <td>
+                              {
+                                collaborators.find(user => user._id === milestone.assignedTo)
+                                  ? `${collaborators.find(user => user._id === milestone.assignedTo)?.fname} ${collaborators.find(user => user._id === milestone.assignedTo)?.lname}`
+                                  : 'Unknown'
+                              }
+                            </td>
                             <td>
                               <Form.Select
                                 size="sm"
@@ -523,16 +565,22 @@ const saveMilestone = async () => {
                 <option value="completed">Completed</option>
               </Form.Select>
             </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Assigned To</Form.Label>
-              <Form.Control
-                type="text"
-                name="assignedTo"
-                value={currentMilestone.assignedTo}
-                onChange={handleInputChange}
-                placeholder="Enter person responsible"
-              />
-            </Form.Group>
+         <Form.Group className="mb-3">
+        <Form.Label>Assigned To</Form.Label>
+        <Form.Select
+          name="assignedTo"
+          value={currentMilestone.assignedTo}
+          onChange={handleInputChange}
+        >
+          <option value="">Select a collaborator</option>
+          {collaborators.map((collab) => (
+            <option key={collab._id} value={collab._id}>
+              {collab.fname} {collab.lname}
+            </option>
+          ))}
+        </Form.Select>
+      </Form.Group>
+
           </Form>
         </Modal.Body>
         <Modal.Footer>

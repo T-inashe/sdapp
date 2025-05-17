@@ -6,6 +6,7 @@ import {
   updateResearchProject,
   deleteResearchProjectById,
   getResearchProjectsByCreator,
+  getCollaboratorsByProjectId,
 } from '../Controller/ProjectC.js'; // Importing correct project-related controllers
 import multer from 'multer';
 const router = express.Router();
@@ -87,6 +88,15 @@ router.put('/projects/:id',upload.single('file'), async (req, res) => {
     res.status(200).json(updatedProject);
   } catch (error) {
     res.status(500).json({ message: 'Error updating research project', error: error.message });
+  }
+});
+
+router.get('/projects/:id/collaborators', async (req, res) => {
+  try {
+    const collaborators = await getCollaboratorsByProjectId(req.params.id);
+    res.status(200).json(collaborators);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

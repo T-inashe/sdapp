@@ -1,32 +1,36 @@
 import mongoose from 'mongoose';
 
-const CollaboratorSchema = new mongoose.Schema({
-  project_id: {
+const CollaboratorInviteSchema = new mongoose.Schema({
+  project: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Project', // assuming you have a Project model
-    required: [true, 'Project ID is required'],
+    ref: 'ResearchProject',
+    required: [true, 'Project reference is required'],
   },
-  collaborator_email: {
-    type: String,
-    required: [true, 'Collaborator email is required'],
-    match: [/.+\@.+\..+/, 'Please enter a valid email address'],
+  sender: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'Sender is required'],
   },
-  role: {
+  receiver: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'Receiver is required'],
+  },
+  message: {
     type: String,
-    default: 'Collaborator',
-    enum: ['Researcher', 'Admin', 'Viewer'], // customize roles if needed
+    default: '',
   },
   status: {
     type: String,
-    default: 'Active',
-    enum: ['Active', 'Inactive', 'Pending'], // customize statuses if needed
+    enum: ['Pending', 'Accepted', 'Declined'],
+    default: 'Pending',
   },
-  joined_at: {
+  respondedAt: {
     type: Date,
-    default: Date.now,
-  },
+    default: null,
+  }
 }, { timestamps: true });
 
-const Collaborator = mongoose.model('Collaborator', CollaboratorSchema);
+const CollaboratorInvite = mongoose.model('CollaboratorInvite', CollaboratorInviteSchema);
 
-export default Collaborator;
+export default CollaboratorInvite;

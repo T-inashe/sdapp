@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext,useRef } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Form, Table, Modal, ProgressBar, Alert } from 'react-bootstrap';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { FiPlus, FiEdit2, FiTrash2, FiCheck } from 'react-icons/fi';
@@ -28,6 +28,8 @@ const MilestoneDashboard: React.FC = () => {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
   const [currentMilestone, setCurrentMilestone] = useState<Milestone>({
     projectId: '', // Default value to satisfy the type
     title: '',
@@ -39,6 +41,40 @@ const MilestoneDashboard: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+
+const handleExportPDF = async () => {
+  if (!reportRef.current) return;
+
+  setExporting(true);
+
+  try {
+    // @ts-ignore
+    const html2canvas = window.html2canvas;
+    // @ts-ignore
+    const { jsPDF } = window.jspdf;
+
+    const canvas = await html2canvas(reportRef.current, {
+      scale: 2, // Higher quality
+      useCORS: true, // Support for external images/fonts
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    // Calculate image dimensions to fit A4
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('report.pdf');
+  } catch (err) {
+    console.error('PDF export error:', err);
+  } finally {
+    setExporting(false);
+  }
+};
+
 
   // Colors for pie chart
   const COLORS = ['#dc3545', '#ffc107', '#198754'];
@@ -237,12 +273,12 @@ const saveMilestone = async () => {
   const { stats, completedPercentage } = getMilestoneStats();
 
   return (
-    <Container fluid>
+    <Container fluid  ref={reportRef}>
       <Row className="mb-4">
         <Col>
-          <Card>
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center mb-3">
+          <Card >
+            <Card.Body >
+              <div className="d-flex justify-content-between align-items-center mb-3" >
                 <h4>Project Milestones</h4>
                 <div>
                   <Form.Select 
@@ -261,6 +297,16 @@ const saveMilestone = async () => {
                   <Button variant="primary" onClick={openNewMilestoneModal}>
                     <FiPlus className="me-1" /> New Milestone
                   </Button>
+
+                <Button 
+                  onClick={handleExportPDF} 
+                  disabled={exporting} 
+                  variant="success" 
+                  style={{ marginLeft: '1rem' }}
+                  >
+                  {exporting ? 'Exporting...' : 'Export as PDF'}
+                  </Button>
+
                 </div>
               </div>
               <p className="text-muted">
@@ -290,7 +336,7 @@ const saveMilestone = async () => {
         <>
           <Row className="mb-4">
             <Col md={8}>
-              <Card>
+              <Card >
                 <Card.Body>
                   <h5 className="mb-3">Milestone Timeline</h5>
                   {milestones.length === 0 ? (

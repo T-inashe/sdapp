@@ -55,24 +55,39 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
     ];
   };
   
-  const handleExportPDF = () => {
+const handleExportPDF = async () => {
   if (!reportRef.current) return;
 
   setExporting(true);
 
   try {
     // @ts-ignore
-    const html2pdf = window.html2pdf;
+    const html2canvas = window.html2canvas;
+    // @ts-ignore
+    const { jsPDF } = window.jspdf;
 
-    html2pdf()
-      .from(reportRef.current)
-      .save()
-      .finally(() => setExporting(false));
+    const canvas = await html2canvas(reportRef.current, {
+      scale: 2, 
+      useCORS: true, 
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    // Calculate image dimensions to fit A4
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('report.pdf');
   } catch (err) {
     console.error('PDF export error:', err);
+  } finally {
     setExporting(false);
   }
 };
+
   // Prepare data for expense categories
   const getCategoryData = () => {
     if (!selectedProject) {
@@ -153,7 +168,7 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
     switch(chartType) {
       case 'allocation':
         return (
-          <Card  ref={reportRef}>
+          <Card>
             <Card.Body>
               <h5 className="mb-4">Budget Allocation</h5>
               {selectedProject ? (
@@ -311,7 +326,7 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
   const metrics = calculateMetrics();
   
   return (
-    <Container fluid>
+    <Container fluid ref={reportRef}>
       <Row className="mb-4">
         <Col>
           <Card>

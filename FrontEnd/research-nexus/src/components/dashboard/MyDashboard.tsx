@@ -78,6 +78,43 @@ const MyDashboard: React.FC = () => {
   const [error, setError] = useState('');
   const [draggedWidgetId, setDraggedWidgetId] = useState<string | null>(null);
   const [dragOverWidgetId, setDragOverWidgetId] = useState<string | null>(null);
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+  
+  const handleExportPDF = async () => {
+    if (!reportRef.current) return;
+
+    setExporting(true);
+
+    try {
+      // @ts-ignore
+      const html2canvas = window.html2canvas;
+      // @ts-ignore
+      const { jsPDF } = window.jspdf;
+
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2, // Higher quality
+        useCORS: true, // Support for external images/fonts
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+
+      // Calculate image dimensions to fit A4
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('report.pdf');
+    } catch (err) {
+      console.error('PDF export error:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+
 
   // Load dashboard configuration from localStorage or set default on first load
   useEffect(() => {
@@ -462,7 +499,7 @@ const MyDashboard: React.FC = () => {
   }
 
   return (
-    <Container fluid className="py-4">
+    <Container fluid className="py-4" ref={reportRef}>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h3>My Dashboard</h3>
         <Button 
@@ -471,6 +508,14 @@ const MyDashboard: React.FC = () => {
           onClick={() => setShowAddWidget(true)}
         >
           <FiPlus className="me-2" /> Add Widget
+        </Button>
+        <Button 
+        onClick={handleExportPDF} 
+        disabled={exporting} 
+        variant="secondary" 
+        style={{ marginLeft: '1rem' }}
+        >
+        {exporting ? 'Exporting...' : 'Export as PDF'}
         </Button>
       </div>
 

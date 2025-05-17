@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { Container, Row, Col, Card, Table, Button, Badge, Modal, Form, Nav } from 'react-bootstrap';
 import { FiDollarSign, FiPlus, FiInfo, FiPieChart, FiBarChart2 } from 'react-icons/fi';
 import AuthContext from '../../context/AuthContext';
@@ -54,6 +54,42 @@ const ResearchFundingDashboard: React.FC = () => {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showFundingModal, setShowFundingModal] = useState(false);
   
+  const reportRef = useRef<HTMLDivElement>(null);
+  
+   const [exporting, setExporting] = useState(false);
+  
+  const handleExportPDF = async () => {
+    if (!reportRef.current) return;
+  
+    setExporting(true);
+  
+    try {
+      // @ts-ignore
+      const html2canvas = window.html2canvas;
+      // @ts-ignore
+      const { jsPDF } = window.jspdf;
+  
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2, // Higher quality
+        useCORS: true, // Support for external images/fonts
+      });
+  
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+  
+      // Calculate image dimensions to fit A4
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+  
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('report.pdf');
+    } catch (err) {
+      console.error('PDF export error:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
   // Form states
   const [newExpense, setNewExpense] = useState({
     description: '',
@@ -371,6 +407,7 @@ const handleAddFunding = async () => {
   );
   
   const renderProjectDetails = () => (
+    <Container>
     <Card>
       <Card.Body>
         <div className="d-flex justify-content-between align-items-center mb-3">
@@ -469,6 +506,14 @@ const handleAddFunding = async () => {
         )}
       </Card.Body>
     </Card>
+    <Button 
+      onClick={handleExportPDF} 
+      disabled={exporting}
+      style={{ marginLeft: 'auto' }}
+    >
+      {exporting ? 'Exporting...' : 'Export as PDF'}
+    </Button>
+    </Container>
   );
   
   const renderVisualization = () => (
@@ -513,7 +558,7 @@ const handleAddFunding = async () => {
   }
 
   return (
-    <Container fluid>
+    <Container fluid  ref={reportRef}>
       <Row className="mb-4">
         <Col>
           <h4>Research Funding Dashboard</h4>

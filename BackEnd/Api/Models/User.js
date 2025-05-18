@@ -43,11 +43,13 @@ const userSchema = new mongoose.Schema({
     enum: ['Bachelor', 'Honours','Masters','PhD'],
     required: false,
   },
+  skills: [{type:String}],
   
   status: {
     type: Boolean,
     default: true,
   },
+
 }, { timestamps: true }); 
 
 // Middleware to hash password before saving

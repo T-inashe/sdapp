@@ -270,7 +270,16 @@ const saveMilestone = async () => {
           const response = await axios.get(`${config.API_URL}/api/createproject/projects/${projectId}/collaborators`, {
             withCredentials: true
           });
-          console.log(response.data)
+          let allCollabs = response.data;
+
+          // Add current user if not already included
+          
+            allCollabs.push({
+                _id: user?.id,
+              fname: user?.name?.split(' ')[0],
+              lname: user?.name?.split(' ')[1],
+            });
+          console.log(allCollabs)
           setCollaborators(response.data);
         } catch (err) {
           console.error(err);
@@ -403,9 +412,14 @@ const saveMilestone = async () => {
                             <td>{formatDate(milestone.dueDate)}</td>
                             <td>
                               {
-                                collaborators.find(user => user._id === milestone.assignedTo)
-                                  ? `${collaborators.find(user => user._id === milestone.assignedTo)?.fname} ${collaborators.find(user => user._id === milestone.assignedTo)?.lname}`
-                                  : 'Unknown'
+                                (() => {
+                                  const assignedUser = collaborators.find(userObj => userObj._id === milestone.assignedTo);
+                                  if (assignedUser) {
+                                    const isMe = assignedUser._id === user?.id;
+                                    return `${assignedUser.fname} ${assignedUser.lname}${isMe ? ' (Owner)' : ''}`;
+                                  }
+                                  return 'Unknown';
+                                })()
                               }
                             </td>
                             <td>
@@ -564,7 +578,7 @@ const saveMilestone = async () => {
                 <option value="completed">Completed</option>
               </Form.Select>
             </Form.Group>
-         <Form.Group className="mb-3">
+        <Form.Group className="mb-3">
         <Form.Label>Assigned To</Form.Label>
         <Form.Select
           name="assignedTo"
@@ -574,12 +588,11 @@ const saveMilestone = async () => {
           <option value="">Select a collaborator</option>
           {collaborators.map((collab) => (
             <option key={collab._id} value={collab._id}>
-              {collab.fname} {collab.lname}
+              {collab.fname} {collab.lname} {collab._id === user?.id ? '(Owner)' : ''}
             </option>
           ))}
         </Form.Select>
       </Form.Group>
-
           </Form>
         </Modal.Body>
         <Modal.Footer>

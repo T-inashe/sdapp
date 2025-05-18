@@ -6,7 +6,7 @@ import axios from 'axios';
 import config from '../../config';
 
 // Import necessary components for widgets
-import Calendar from './Calendar';
+// import Calendar from './Calendar';
 
 // Widget types definition
 type WidgetType = 
@@ -15,7 +15,6 @@ type WidgetType =
   | 'funding' 
   | 'notifications' 
   | 'collaborators'
-  | 'calendar'
   | 'skills';
 
 interface WidgetConfig {
@@ -59,6 +58,19 @@ interface Milestone {
   assignedTo: string;
   createdAt?: string;
 }
+// Define funding types
+interface FundingSource {
+  _id?: string;
+  name: string;
+  amount: number;
+  currency: 'USD' | 'EUR' | 'GBP' | string;
+  status: 'pending' | 'approved' | 'rejected' | 'disbursed';
+  startDate: string;
+  endDate: string;
+  projectId?: string;
+  description?: string;
+  agency?: string;
+}
 
 const WIDGET_OPTIONS = [
   { value: 'projects', label: 'My Projects' },
@@ -66,7 +78,7 @@ const WIDGET_OPTIONS = [
   { value: 'funding', label: 'Funding' },
   { value: 'notifications', label: 'Notifications' },
   { value: 'collaborators', label: 'Collaborators' },
-  { value: 'calendar', label: 'Calendar' },
+  // { value: 'calendar', label: 'Calendar' },
   { value: 'skills', label: 'Skills Profile' }
 ];
 
@@ -89,6 +101,7 @@ const MyDashboard: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [fundingSources, setFundingSources] = useState<FundingSource[]>([]);
 
   // Load dashboard configuration from localStorage or set default on first load
   useEffect(() => {
@@ -129,6 +142,56 @@ const MyDashboard: React.FC = () => {
   };
 
   const fetchDashboardData = async () => {
+      // Fetch funding sources
+      try {
+        const fundingResponse = await axios.get(`${config.API_URL}/api/funding/user/${user?.id}`, {
+          withCredentials: true
+        });
+        
+        if (fundingResponse.data && Array.isArray(fundingResponse.data)) {
+          setFundingSources(fundingResponse.data);
+        }
+      } catch (error) {
+        console.error('Error fetching funding sources:', error);
+        // Use mock data if API isn't available
+        const mockFunding: FundingSource[] = [
+          {
+            _id: '1',
+            name: 'NSF Research Grant',
+            amount: 250000,
+            currency: 'USD',
+            status: 'approved',
+            startDate: '2025-01-01',
+            endDate: '2026-12-31',
+            agency: 'National Science Foundation',
+            description: 'Machine Learning Research Project'
+          },
+          {
+            _id: '2',
+            name: 'University Seed Grant',
+            amount: 50000,
+            currency: 'USD',
+            status: 'disbursed',
+            startDate: '2024-09-01',
+            endDate: '2025-08-31',
+            agency: 'University Research Office',
+            description: 'Data Analysis Infrastructure'
+          },
+          {
+            _id: '3',
+            name: 'Industry Partnership',
+            amount: 100000,
+            currency: 'USD',
+            status: 'pending',
+            startDate: '2025-06-01',
+            endDate: '2026-05-31',
+            agency: 'Tech Company Inc.',
+            description: 'Applied AI Research Collaboration'
+          }
+        ];
+        setFundingSources(mockFunding);
+      }
+
     try {
       // Fetch projects
       const projectResponse = await axios.get(`${config.API_URL}/api/createproject/creator/${user?.id}`, {
@@ -231,6 +294,8 @@ const fetchMilestones = async (projectId: number) => {
     setIsLoading(false);
   }
 };
+
+
   const handleAddWidget = () => {
     if (!newWidget.type) return;
     
@@ -281,8 +346,8 @@ const fetchMilestones = async (projectId: number) => {
       case 'funding':
         return renderFundingWidget(widget);
       case 'collaborators':
-        return renderCollaboratorsWidget(widget);
-      case 'calendar':
+      //   return renderCollaboratorsWidget(widget);
+      // case 'calendar':
         return renderCalendarWidget(widget);
       case 'skills':
         return renderSkillsProfileWidget(widget);
@@ -431,14 +496,94 @@ const fetchMilestones = async (projectId: number) => {
   };
 
   const renderFundingWidget = (widget: WidgetConfig) => {
+    const totalFunding = fundingSources.reduce((sum, funding) => sum + funding.amount, 0);
+    const activeFunding = fundingSources.filter(funding => 
+      funding.status === 'approved' || funding.status === 'disbursed'
+    );
+    
+    const getStatusColor = (status: string) => {
+      switch (status) {
+        case 'approved': return 'success';
+        case 'disbursed': return 'primary';
+        case 'pending': return 'warning';
+        case 'rejected': return 'danger';
+        default: return 'secondary';
+      }
+    };
+
+    const formatCurrency = (amount: number, currency: string) => {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency || 'USD'
+      }).format(amount);
+    };
+
     return (
       <Card className="h-100">
         <Card.Header className="d-flex justify-content-between align-items-center">
           <h5 className="mb-0">Funding</h5>
+          <Badge bg="info">{activeFunding.length} Active</Badge>
         </Card.Header>
         <Card.Body>
-          <p className="text-center text-muted">Your funding information will appear here.</p>
+          {fundingSources.length === 0 ? (
+            <div className="text-center text-muted">
+              <p>No funding sources available.</p>
+              <Button variant="outline-primary" size="sm">
+                Add Funding Source
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="mb-3 p-3 bg-light rounded">
+                <h6 className="mb-2">Total Funding</h6>
+                <h4 className="text-primary mb-0">
+                  {formatCurrency(totalFunding, 'USD')}
+                </h4>
+                <small className="text-muted">
+                  {activeFunding.length} of {fundingSources.length} sources active
+                </small>
+              </div>
+              
+              <div className="funding-list">
+                {fundingSources.slice(0, widget.size === 'small' ? 2 : 3).map((funding) => (
+                  <div key={funding._id} className="mb-3 border-bottom pb-2">
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <h6 className="mb-0">{funding.name}</h6>
+                      <Badge bg={getStatusColor(funding.status)}>
+                        {funding.status}
+                      </Badge>
+                    </div>
+                    
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <span className="fw-bold text-success">
+                        {formatCurrency(funding.amount, funding.currency)}
+                      </span>
+                      <small className="text-muted">{funding.agency}</small>
+                    </div>
+                    
+                    <div className="d-flex justify-content-between align-items-center">
+                      <small className="text-muted">
+                        {formatDate(funding.startDate)} - {formatDate(funding.endDate)}
+                      </small>
+                      <small className="text-muted">
+                        {Math.round((new Date(funding.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days left
+                      </small>
+                    </div>
+                    
+                    {funding.description && (
+                      <p className="text-muted small mb-0 mt-1">{funding.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </Card.Body>
+        <Card.Footer className="text-center">
+          <Button variant="outline-primary" size="sm">
+            Manage Funding
+          </Button>
+        </Card.Footer>
       </Card>
     );
   };
@@ -624,6 +769,13 @@ const fetchMilestones = async (projectId: number) => {
           padding: 8px;
           border-radius: 4px;
           border: 2px solid transparent;
+        }
+           .funding-list .border-bottom:last-child {
+          border-bottom: none !important;
+        }
+        
+        .bg-light {
+          background-color: #f8f9fa !important;
         }
       `}</style>
     </Container>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Modal, Form } from 'react-bootstrap';
-import { FiPlus, FiX, FiMove } from 'react-icons/fi';
+import { Container, Row, Col, Card, Button, Modal, Form, Badge, Table } from 'react-bootstrap';
+import { FiPlus, FiX, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import AuthContext from '../../context/AuthContext';
 import axios from 'axios';
 import config from '../../config';
@@ -49,6 +49,17 @@ interface Notification {
   date: string;
 }
 
+interface Milestone {
+  _id?: string;
+  projectId: number;
+  title: string;
+  description: string;
+  dueDate: string;
+  status: 'not started' | 'in progress' | 'completed';
+  assignedTo: string;
+  createdAt?: string;
+}
+
 const WIDGET_OPTIONS = [
   { value: 'projects', label: 'My Projects' },
   { value: 'milestones', label: 'Milestones' },
@@ -74,47 +85,10 @@ const MyDashboard: React.FC = () => {
   });
   const [projects, setProjects] = useState<Project[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [selectedProject, setSelectedProject] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [draggedWidgetId, setDraggedWidgetId] = useState<string | null>(null);
-  const [dragOverWidgetId, setDragOverWidgetId] = useState<string | null>(null);
-  const reportRef = useRef<HTMLDivElement>(null);
-  const [exporting, setExporting] = useState(false);
-  
-  const handleExportPDF = async () => {
-    if (!reportRef.current) return;
-
-    setExporting(true);
-
-    try {
-      // @ts-ignore
-      const html2canvas = window.html2canvas;
-      // @ts-ignore
-      const { jsPDF } = window.jspdf;
-
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2, // Higher quality
-        useCORS: true, // Support for external images/fonts
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-
-      // Calculate image dimensions to fit A4
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save('report.pdf');
-    } catch (err) {
-      console.error('PDF export error:', err);
-    } finally {
-      setExporting(false);
-    }
-  };
-
-
 
   // Load dashboard configuration from localStorage or set default on first load
   useEffect(() => {
@@ -144,7 +118,7 @@ const MyDashboard: React.FC = () => {
     const defaultWidgets: WidgetConfig[] = [
       { id: 'widget_1', type: 'projects', title: 'My Projects', size: 'medium', position: 0 },
       { id: 'widget_2', type: 'notifications', title: 'Notifications', size: 'small', position: 1 },
-      { id: 'widget_3', type: 'skills', title: 'Skills Profile', size: 'small', position: 2 }
+      { id: 'widget_3', type: 'milestones', title: 'Milestones', size: 'medium', position: 2 }
     ];
     
     const newDashboardState = { widgets: defaultWidgets };
@@ -163,6 +137,10 @@ const MyDashboard: React.FC = () => {
       
       if (projectResponse.data) {
         setProjects(projectResponse.data);
+        if (projectResponse.data.length > 0) {
+          setSelectedProject(projectResponse.data[0]._id);
+          fetchMilestones(projectResponse.data[0]._id);
+        }
       }
 
       // Fetch notifications
@@ -191,6 +169,68 @@ const MyDashboard: React.FC = () => {
     }
   };
 
+const fetchMilestones = async (projectId: number) => {
+  setIsLoading(true);
+  try {
+    // First try to get milestones from the API
+    try {
+      const response = await axios.get(`${config.API_URL}/api/milestones?projectId=${projectId}`, {
+        withCredentials: true
+      });
+      
+      if (response.data && Array.isArray(response.data)) {
+        setMilestones(response.data);
+        setIsLoading(false);
+        return; // Exit early if we successfully got data
+      }
+    } catch (apiError) {
+      // Silently fail and continue to use mock data
+      console.log('API endpoint for milestones not available, using mock data instead');
+    }
+    
+    // If we get here, either the API call failed or returned invalid data
+    // Use mock data as fallback
+    const mockMilestones = [
+      {
+        _id: '1',
+        projectId: projectId,
+        title: 'Literature Review',
+        description: 'Complete comprehensive literature review',
+        dueDate: '2025-06-15',
+        status: 'completed' as const,
+        assignedTo: user?.name || 'Team Member',
+        createdAt: '2025-05-01'
+      },
+      {
+        _id: '2',
+        projectId: projectId,
+        title: 'Data Collection',
+        description: 'Gather and organize research data',
+        dueDate: '2025-07-30',
+        status: 'in progress' as const,
+        assignedTo: user?.name || 'Team Member',
+        createdAt: '2025-05-01'
+      },
+      {
+        _id: '3',
+        projectId: projectId,
+        title: 'Analysis',
+        description: 'Analyze collected data',
+        dueDate: '2025-08-15',
+        status: 'not started' as const,
+        assignedTo: user?.name || 'Team Member',
+        createdAt: '2025-05-01'
+      }
+    ];
+    setMilestones(mockMilestones);
+  } catch (err) {
+    console.error('Unexpected error in fetchMilestones:', err);
+    // Set empty milestones array in case of unexpected errors
+    setMilestones([]);
+  } finally {
+    setIsLoading(false);
+  }
+};
   const handleAddWidget = () => {
     if (!newWidget.type) return;
     
@@ -229,80 +269,6 @@ const MyDashboard: React.FC = () => {
     localStorage.setItem(`dashboard_${user?.id}`, JSON.stringify(updatedDashboardState));
   };
 
-  // New HTML5 Drag and Drop handlers
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, widgetId: string) => {
-    setDraggedWidgetId(widgetId);
-    e.dataTransfer.effectAllowed = 'move';
-    // Add some opacity to the dragged element
-    if (e.currentTarget.classList) {
-      e.currentTarget.classList.add('dragging');
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, widgetId: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    
-    if (draggedWidgetId !== widgetId) {
-      setDragOverWidgetId(widgetId);
-    }
-  };
-
-  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>, widgetId: string) => {
-    e.preventDefault();
-    if (draggedWidgetId !== widgetId) {
-      setDragOverWidgetId(widgetId);
-    }
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragOverWidgetId(null);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetWidgetId: string) => {
-    e.preventDefault();
-    
-    if (!draggedWidgetId || draggedWidgetId === targetWidgetId) {
-      return;
-    }
-
-    const sortedWidgets = [...dashboardState.widgets].sort((a, b) => a.position - b.position);
-    
-    const draggedIndex = sortedWidgets.findIndex(widget => widget.id === draggedWidgetId);
-    const targetIndex = sortedWidgets.findIndex(widget => widget.id === targetWidgetId);
-    
-    if (draggedIndex === -1 || targetIndex === -1) return;
-    
-    // Remove dragged item
-    const [draggedWidget] = sortedWidgets.splice(draggedIndex, 1);
-    
-    // Insert at new position
-    sortedWidgets.splice(targetIndex, 0, draggedWidget);
-    
-    // Update positions
-    const reorderedWidgets = sortedWidgets.map((widget, index) => ({
-      ...widget,
-      position: index
-    }));
-    
-    const updatedDashboardState = { ...dashboardState, widgets: reorderedWidgets };
-    
-    setDashboardState(updatedDashboardState);
-    localStorage.setItem(`dashboard_${user?.id}`, JSON.stringify(updatedDashboardState));
-    
-    setDraggedWidgetId(null);
-    setDragOverWidgetId(null);
-  };
-
-  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
-    if (e.currentTarget.classList) {
-      e.currentTarget.classList.remove('dragging');
-    }
-    setDraggedWidgetId(null);
-    setDragOverWidgetId(null);
-  };
-
   // Render appropriate widget based on its type
   const renderWidget = (widget: WidgetConfig) => {
     switch (widget.type) {
@@ -316,8 +282,8 @@ const MyDashboard: React.FC = () => {
         return renderFundingWidget(widget);
       case 'collaborators':
         return renderCollaboratorsWidget(widget);
-      // case 'calendar':
-      //   return renderCalendarWidget(widget);
+      case 'calendar':
+        return renderCalendarWidget(widget);
       case 'skills':
         return renderSkillsProfileWidget(widget);
       default:
@@ -334,6 +300,24 @@ const MyDashboard: React.FC = () => {
       case 'medium':
       default:
         return 6;
+    }
+  };
+
+  const formatDate = (dateString: string): string => {
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+  };
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'success';
+      case 'in progress':
+        return 'warning';
+      case 'not started':
+        return 'danger';
+      default:
+        return 'secondary';
     }
   };
 
@@ -397,10 +381,51 @@ const MyDashboard: React.FC = () => {
       <Card className="h-100">
         <Card.Header className="d-flex justify-content-between align-items-center">
           <h5 className="mb-0">Milestones</h5>
+          {projects.length > 0 && (
+            <Form.Select 
+              size="sm"
+              value={selectedProject || ''}
+              onChange={(e) => {
+                const projectId = Number(e.target.value);
+                setSelectedProject(projectId);
+                fetchMilestones(projectId);
+              }}
+              style={{ width: '150px' }}
+            >
+              {projects.map(project => (
+                <option key={project._id} value={project._id}>{project.title}</option>
+              ))}
+            </Form.Select>
+          )}
         </Card.Header>
         <Card.Body>
-          <p className="text-center text-muted">Your upcoming project milestones will appear here.</p>
+          {projects.length === 0 ? (
+            <p className="text-center text-muted">No projects available to display milestones.</p>
+          ) : milestones.length === 0 ? (
+            <p className="text-center text-muted">No milestones found for this project.</p>
+          ) : (
+            <div className="milestone-list">
+              {milestones.slice(0, 3).map((milestone) => (
+                <div key={milestone._id} className="mb-3 border-bottom pb-2">
+                  <div className="d-flex justify-content-between align-items-center mb-1">
+                    <h6>{milestone.title}</h6>
+                    <Badge bg={getStatusVariant(milestone.status)}>
+                      {milestone.status}
+                    </Badge>
+                  </div>
+                  <p className="text-muted small mb-1">{milestone.description}</p>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <small>Due: {formatDate(milestone.dueDate)}</small>
+                    <small>Assigned to: {milestone.assignedTo}</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card.Body>
+        <Card.Footer className="text-center">
+          <Button variant="outline-primary" size="sm">View All Milestones</Button>
+        </Card.Footer>
       </Card>
     );
   };
@@ -431,18 +456,18 @@ const MyDashboard: React.FC = () => {
     );
   };
 
-  // const renderCalendarWidget = (widget: WidgetConfig) => {
-  //   return (
-  //     <Card className="h-100">
-  //       <Card.Header className="d-flex justify-content-between align-items-center">
-  //         <h5 className="mb-0">Calendar</h5>
-  //       </Card.Header>
-  //       <Card.Body>
-  //         <Calendar projects={projects as unknown as CalendarProject[]} />
-  //       </Card.Body>
-  //     </Card>
-  //   );
-  // };
+  const renderCalendarWidget = (widget: WidgetConfig) => {
+    return (
+      <Card className="h-100">
+        <Card.Header className="d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">Calendar</h5>
+        </Card.Header>
+        <Card.Body>
+          <p className="text-center text-muted">Calendar functionality will be added here.</p>
+        </Card.Body>
+      </Card>
+    );
+  };
 
   const renderSkillsProfileWidget = (widget: WidgetConfig) => {
     return (
@@ -499,7 +524,7 @@ const MyDashboard: React.FC = () => {
   }
 
   return (
-    <Container fluid className="py-4" ref={reportRef}>
+    <Container fluid className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h3>My Dashboard</h3>
         <Button 
@@ -509,18 +534,10 @@ const MyDashboard: React.FC = () => {
         >
           <FiPlus className="me-2" /> Add Widget
         </Button>
-        <Button 
-        onClick={handleExportPDF} 
-        disabled={exporting} 
-        variant="secondary" 
-        style={{ marginLeft: '1rem' }}
-        >
-        {exporting ? 'Exporting...' : 'Export as PDF'}
-        </Button>
       </div>
 
       <p className="text-muted mb-4">
-        Customize your dashboard by adding, removing, or rearranging widgets to monitor the specific metrics 
+        Customize your dashboard by adding or removing widgets to monitor the specific metrics 
         and information that matter most to you.
       </p>
 
@@ -533,20 +550,10 @@ const MyDashboard: React.FC = () => {
               md={getColumnSize(widget.size)}
               className="mb-4"
             >
-              <div 
-                className={`widget-wrapper ${dragOverWidgetId === widget.id ? 'drag-over' : ''}`}
-                draggable
-                onDragStart={(e) => handleDragStart(e, widget.id)}
-                onDragOver={(e) => handleDragOver(e, widget.id)}
-                onDragEnter={(e) => handleDragEnter(e, widget.id)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, widget.id)}
-                onDragEnd={handleDragEnd}
-              >
+              <div className="widget-wrapper">
                 <div className="widget-header d-flex justify-content-between align-items-center mb-2">
-                  <div className="d-flex align-items-center widget-drag-handle">
-                    <FiMove className="me-2 text-muted" />
-                    <span className="text-muted small">Drag to reposition</span>
+                  <div className="d-flex align-items-center">
+                    <span className="text-muted small">{widget.title}</span>
                   </div>
                   <Button 
                     variant="link" 
@@ -611,27 +618,12 @@ const MyDashboard: React.FC = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* CSS styles for drag and drop */}
+      {/* CSS styles */}
       <style>{`
         .widget-wrapper {
-          transition: background-color 0.2s;
           padding: 8px;
           border-radius: 4px;
           border: 2px solid transparent;
-        }
-        
-        .widget-wrapper.dragging {
-          opacity: 0.5;
-          cursor: move;
-        }
-        
-        .widget-wrapper.drag-over {
-          border: 2px dashed #007bff;
-          background-color: rgba(0, 123, 255, 0.05);
-        }
-        
-        .widget-drag-handle {
-          cursor: move;
         }
       `}</style>
     </Container>

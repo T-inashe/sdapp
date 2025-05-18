@@ -67,11 +67,10 @@ const handleExportPDF = async () => {
     const { jsPDF } = window.jspdf;
 
     const canvas = await html2canvas(reportRef.current, {
-      scale: 2, // Higher quality
       useCORS: true, // Support for external images/fonts
     });
 
-    const imgData = canvas.toDataURL('image/png');
+    const imgData = canvas.toDataURL('image/jpeg', 0.7);
     const pdf = new jsPDF('p', 'mm', 'a4');
 
     // Calculate image dimensions to fit A4

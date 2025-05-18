@@ -530,14 +530,6 @@ const CollaboratorDashboard: React.FC = () => {
                         >
                           Invite Collaborators
                         </Button>
-                        <Button 
-                          variant="secondary" 
-                          size="sm" 
-                          className="me-2"
-                          onClick={() => setActiveTab('collaborators')}
-                        >
-                          View Collaborators
-                        </Button>
                         </div>
                       </Card.Body>
                     </Card>

@@ -90,10 +90,10 @@ const getDashboardTitle = () => {
     formData.append('projectId', id || '');
     if (newMessage) formData.append('content', newMessage);
     if (attachedFile) formData.append('file', attachedFile);
+    console.log(formData)
     const response = await axios.post(`${config.API_URL}/api/message`, formData, {
     });
-
-    console.log(response.data)
+    
     const sentMessage = response.data;
 
     // Immediately mark as delivered

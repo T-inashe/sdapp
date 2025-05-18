@@ -70,7 +70,10 @@ export const getInvitesByReceiverId = async (userId) => {
 // ACCEPT an invite
 export const acceptInvite = async (inviteId) => {
   try {
-    const invite = await Collaborator.findById(inviteId);
+    const invite = await Collaborator.findById(inviteId)
+      .populate('receiver', 'fname lname')
+      .populate('sender', 'fname lname');
+
     if (!invite || invite.status !== 'Pending') {
       throw new Error('Invite not found or already responded to');
     }
@@ -79,15 +82,13 @@ export const acceptInvite = async (inviteId) => {
     invite.respondedAt = new Date();
     await invite.save();
 
-    // Add user to project's collaborators array
     await ResearchProject.findByIdAndUpdate(invite.project, {
-      $addToSet: { collaborators: invite.receiver },
+      $addToSet: { collaborators: invite.receiver._id },
     });
 
-    // Notify the sender
     const notification = new Notification({
-      message: `${invite.receiver.fname} accepted your project invite.`,
-      user: invite.sender,
+      message: `${invite.receiver.fname} ${invite.receiver.lname} accepted your project invite.`,
+      user: invite.sender._id,
       type: 'success',
     });
     await notification.save();
@@ -98,10 +99,14 @@ export const acceptInvite = async (inviteId) => {
   }
 };
 
+
 // DECLINE an invite
 export const declineInvite = async (inviteId) => {
   try {
-    const invite = await Collaborator.findById(inviteId);
+    const invite = await Collaborator.findById(inviteId)
+      .populate('receiver', 'fname lname')
+      .populate('sender', 'fname lname');
+
     if (!invite || invite.status !== 'Pending') {
       throw new Error('Invite not found or already responded to');
     }
@@ -110,10 +115,9 @@ export const declineInvite = async (inviteId) => {
     invite.respondedAt = new Date();
     await invite.save();
 
-    // Optional: Notify the sender
     const notification = new Notification({
-      message: `${invite.receiver.fname} declined your project invite.`,
-      user: invite.sender,
+      message: `${invite.receiver.fname} ${invite.receiver.lname} declined your project invite.`,
+      user: invite.sender._id,
       type: 'InviteDeclined',
     });
     await notification.save();
@@ -123,6 +127,7 @@ export const declineInvite = async (inviteId) => {
     throw new Error(`Error declining invite: ${error.message}`);
   }
 };
+
 
 // DELETE invite
 export const deleteCollaboratorById = async (id) => {

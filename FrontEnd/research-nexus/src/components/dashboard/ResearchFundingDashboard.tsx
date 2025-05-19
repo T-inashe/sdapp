@@ -373,7 +373,7 @@ const handleAddFunding = async () => {
         <Button variant="outline-secondary" onClick={() => {
           setSelectedProject(null);
           setActiveView('summary');
-        }}>
+        }} data-testid="back-btn">
           Back to All Projects
         </Button>
       </Col>
@@ -412,14 +412,16 @@ const handleAddFunding = async () => {
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h5 className="mb-0">{selectedProject?.projectTitle}</h5>
           <div>
-            <Button 
+            <Button
+              data-testid="open-add-funding-btn" 
               variant="outline-success" 
               className="me-2"
               onClick={() => setShowFundingModal(true)}
             >
               <FiDollarSign className="me-1" /> Add Funding
             </Button>
-            <Button 
+            <Button
+              data-testid="open-add-expense-btn" 
               variant="outline-primary"
               onClick={() => setShowExpenseModal(true)}
             >
@@ -506,6 +508,7 @@ const handleAddFunding = async () => {
       </Card.Body>
     </Card>
     <Button 
+      data-testid="export-pdf-btn"
       onClick={handleExportPDF} 
       disabled={exporting}
       style={{ marginLeft: 'auto' }}
@@ -574,7 +577,8 @@ const handleAddFunding = async () => {
               <div className="d-flex justify-content-between align-items-center">
                 <h5>Project Funding Summary</h5>
                 {fundingDetails.length > 0 && (
-                  <Button 
+                  <Button
+                    data-testid="overall-analytics-btn" 
                     variant="outline-primary" 
                     onClick={() => {
                       setActiveView('visualization');
@@ -630,13 +634,15 @@ const handleAddFunding = async () => {
                             <td>
                               <div className="btn-group">
                                 <Button 
+                                  data-testid="details-btn"
                                   variant="outline-primary" 
                                   size="sm"
                                   onClick={() => viewProjectDetails(fund)}
                                 >
                                   Details
                                 </Button>
-                                <Button 
+                                <Button
+                                  data-testid="view-piechart-btn" 
                                   variant="outline-info" 
                                   size="sm"
                                   onClick={() => viewProjectVisualizations(fund)}
@@ -675,8 +681,9 @@ const handleAddFunding = async () => {
         <Modal.Body>
           <Form>
             <Form.Group className="mb-3">
-              <Form.Label>Description</Form.Label>
-              <Form.Control 
+              <Form.Label htmlFor="description">Description</Form.Label>
+              <Form.Control
+                id="description" 
                 type="text" 
                 value={newExpense.description}
                 onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
@@ -684,8 +691,9 @@ const handleAddFunding = async () => {
             </Form.Group>
             
             <Form.Group className="mb-3">
-              <Form.Label>Amount</Form.Label>
-              <Form.Control 
+              <Form.Label htmlFor="amount">Amount</Form.Label>
+              <Form.Control
+                id="amount" 
                 type="number" 
                 value={newExpense.amount}
                 onChange={(e) => setNewExpense({...newExpense, amount: parseFloat(e.target.value)})}
@@ -693,8 +701,9 @@ const handleAddFunding = async () => {
             </Form.Group>
             
             <Form.Group className="mb-3">
-              <Form.Label>Category</Form.Label>
-              <Form.Select 
+              <Form.Label htmlFor="category">Category</Form.Label>
+              <Form.Select
+                id="category" 
                 value={newExpense.category}
                 onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}
               >
@@ -708,8 +717,9 @@ const handleAddFunding = async () => {
             </Form.Group>
             
             <Form.Group className="mb-3">
-              <Form.Label>Date</Form.Label>
-              <Form.Control 
+              <Form.Label htmlFor="date">Date</Form.Label>
+              <Form.Control
+                id="date" 
                 type="date" 
                 value={newExpense.date}
                 onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
@@ -718,13 +728,14 @@ const handleAddFunding = async () => {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowExpenseModal(false)}>
+          <Button variant="secondary" onClick={() => setShowExpenseModal(false)} data-testid="cancel-btn">
             Cancel
           </Button>
           <Button 
             variant="primary" 
             onClick={handleAddExpense}
             disabled={!newExpense.description || newExpense.amount <= 0}
+            data-testid="submit-add-expense-btn"
           >
             Add Expense
           </Button>
@@ -739,8 +750,9 @@ const handleAddFunding = async () => {
         <Modal.Body>
           <Form>
             <Form.Group className="mb-3">
-              <Form.Label>Funding Source</Form.Label>
-              <Form.Control 
+              <Form.Label htmlFor="funding-source">Funding Source</Form.Label>
+              <Form.Control
+                id="funding-source" 
                 type="text" 
                 value={newFunding.funder}
                 onChange={(e) => setNewFunding({...newFunding, funder: e.target.value})}
@@ -748,8 +760,9 @@ const handleAddFunding = async () => {
             </Form.Group>
             
             <Form.Group className="mb-3">
-              <Form.Label>Amount</Form.Label>
-              <Form.Control 
+              <Form.Label htmlFor="amount">Amount</Form.Label>
+              <Form.Control
+                id="amount" 
                 type="number" 
                 value={newFunding.amount}
                 onChange={(e) => setNewFunding({...newFunding, amount: parseFloat(e.target.value)})}
@@ -757,8 +770,9 @@ const handleAddFunding = async () => {
             </Form.Group>
             
             <Form.Group className="mb-3">
-              <Form.Label>End Date</Form.Label>
-              <Form.Control 
+              <Form.Label htmlFor="end-date">End Date</Form.Label>
+              <Form.Control
+                id="end-date" 
                 type="date" 
                 value={newFunding.endDate}
                 onChange={(e) => setNewFunding({...newFunding, endDate: e.target.value})}
@@ -767,10 +781,11 @@ const handleAddFunding = async () => {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowFundingModal(false)}>
+          <Button variant="secondary" onClick={() => setShowFundingModal(false)} data-testid="cancel-btn">
             Cancel
           </Button>
-          <Button 
+          <Button
+            data-testid="submit-add-funding-btn" 
             variant="primary" 
             onClick={handleAddFunding}
             disabled={!newFunding.funder || newFunding.amount <= 0}

@@ -455,8 +455,9 @@ const ReviewerDashboard: React.FC = () => {
                         </Form.Group>
                         
                         <Form.Group className="mb-3">
-                          <Form.Label>Comments and Feedback</Form.Label>
+                          <Form.Label htmlFor="comments">Comments and Feedback</Form.Label>
                           <Form.Control 
+                            id="comments"
                             as="textarea" 
                             rows={4} 
                             value={evaluation.comments}
@@ -466,8 +467,9 @@ const ReviewerDashboard: React.FC = () => {
                         </Form.Group>
                         
                         <Form.Group className="mb-3">
-                          <Form.Label>Recommendation</Form.Label>
+                          <Form.Label htmlFor="recommendation">Recommendation</Form.Label>
                           <Form.Select 
+                            id="recommendation"
                             value={evaluation.recommendation}
                             onChange={(e) => handleEvaluationChange('recommendation', e.target.value)}
                           >

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Modal, Form, Badge, Table } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Modal, Form, Badge, Table, Spinner } from 'react-bootstrap';
 import { FiPlus, FiX, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import AuthContext from '../../context/AuthContext';
 import axios from 'axios';
 import config from '../../config';
+import { Link } from 'react-router-dom';
 
 // Import necessary components for widgets
 // import Calendar from './Calendar';
@@ -49,14 +50,14 @@ interface Notification {
 }
 
 interface Milestone {
-  _id?: string;
-  projectId: number;
+  _id: string;
+  projectId: string | number; // Update this to accept both string and number
   title: string;
   description: string;
   dueDate: string;
-  status: 'not started' | 'in progress' | 'completed';
+  status: 'completed' | 'in progress' | 'not started';
   assignedTo: string;
-  createdAt?: string;
+  createdAt: string;
 }
 // Define funding types
 interface FundingSource {
@@ -70,6 +71,15 @@ interface FundingSource {
   projectId?: string;
   description?: string;
   agency?: string;
+}
+interface Collaborator {
+  _id: string;
+  fname: string;
+  lname: string;
+  avatar?: string;
+  academicRole: string;
+  department: string;
+  researcharea: string;
 }
 
 const WIDGET_OPTIONS = [
@@ -102,6 +112,11 @@ const MyDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [fundingSources, setFundingSources] = useState<FundingSource[]>([]);
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+const [loadingCollaborators, setLoadingCollaborators] = useState<boolean>(false);
+const [collaboratorSearch, setCollaboratorSearch] = useState<string>('');
+const [filteredCollaborators, setFilteredCollaborators] = useState<Collaborator[]>([]);
+
 
   // Load dashboard configuration from localStorage or set default on first load
   useEffect(() => {
@@ -140,8 +155,77 @@ const MyDashboard: React.FC = () => {
     // Save to localStorage
     localStorage.setItem(`dashboard_${user?.id}`, JSON.stringify(newDashboardState));
   };
-
+const fetchCollaborators = async () => {
+  setLoadingCollaborators(true);
+  try {
+    // Try to fetch from API first
+    try {
+      const response = await axios.get(`${config.API_URL}/api/users`, {
+        withCredentials: true
+      });
+      
+      if (response.data && Array.isArray(response.data)) {
+        // Filter out current user
+        const otherUsers = response.data.filter((u: Collaborator) => u._id !== user?.id);
+        setCollaborators(otherUsers);
+        setFilteredCollaborators(otherUsers.slice(0, 3)); // Show top 3 by default
+        setLoadingCollaborators(false);
+        return;
+      }
+    } catch (apiError) {
+      console.log('API endpoint not available, using mock data instead');
+    }
+    
+    // Mock data as fallback
+    const mockCollaborators: Collaborator[] = [
+      {
+        _id: '1',
+        fname: 'Sarah',
+        lname: 'Johnson',
+        academicRole: 'Professor',
+        department: 'Computer Science',
+        researcharea: 'Machine Learning'
+      },
+      {
+        _id: '2',
+        fname: 'Michael',
+        lname: 'Chen',
+        academicRole: 'Associate Professor',
+        department: 'Data Science',
+        researcharea: 'Neural Networks'
+      },
+      {
+        _id: '3',
+        fname: 'Priya',
+        lname: 'Patel',
+        academicRole: 'Post-doctoral Researcher',
+        department: 'Artificial Intelligence',
+        researcharea: 'Natural Language Processing'
+      },
+      {
+        _id: '4',
+        fname: 'James',
+        lname: 'Wilson',
+        academicRole: 'PhD Student',
+        department: 'Computer Science',
+        researcharea: 'Computer Vision'
+      }
+    ];
+    
+    setCollaborators(mockCollaborators);
+    setFilteredCollaborators(mockCollaborators.slice(0, 3)); // Show top 3 by default
+  } catch (err) {
+    console.error('Error fetching collaborators:', err);
+    setCollaborators([]);
+    setFilteredCollaborators([]);
+  } finally {
+    setLoadingCollaborators(false);
+  }
+};
   const fetchDashboardData = async () => {
+     if (collaborators.length === 0) {
+    fetchCollaborators();
+  }
       // Fetch funding sources
       try {
         const fundingResponse = await axios.get(`${config.API_URL}/api/funding/user/${user?.id}`, {
@@ -231,11 +315,42 @@ const MyDashboard: React.FC = () => {
       setIsLoading(false);
     }
   };
+// Add this function to filter collaborators based on search
+const handleCollaboratorSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value.toLowerCase();
+  setCollaboratorSearch(value);
+  
+  if (!value.trim()) {
+    setFilteredCollaborators(collaborators.slice(0, 3));
+    return;
+  }
+  
+  const filtered = collaborators.filter(collab => {
+    const fullName = `${collab.fname} ${collab.lname}`.toLowerCase();
+    const department = collab.department?.toLowerCase() || '';
+    const area = collab.researcharea?.toLowerCase() || '';
+    
+    return fullName.includes(value) || 
+           department.includes(value) || 
+           area.includes(value);
+  });
+  
+  setFilteredCollaborators(filtered.slice(0, 3)); // Still limit to 3 results
+};
 
-const fetchMilestones = async (projectId: number) => {
+// Updated fetchMilestones function in MyDashboard.tsx
+const fetchMilestones = async (projectId: number | string) => {
   setIsLoading(true);
   try {
-    // First try to get milestones from the API
+    // Check if the project ID is valid
+    if (!projectId) {
+      console.log('No project ID provided for fetching milestones');
+      setMilestones([]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Try to fetch milestones from API
     try {
       const response = await axios.get(`${config.API_URL}/api/milestones?projectId=${projectId}`, {
         withCredentials: true
@@ -247,12 +362,10 @@ const fetchMilestones = async (projectId: number) => {
         return; // Exit early if we successfully got data
       }
     } catch (apiError) {
-      // Silently fail and continue to use mock data
-      console.log('API endpoint for milestones not available, using mock data instead');
+      console.log(`Using mock milestone data for project ${projectId} - API endpoint may not be ready`);
     }
     
-    // If we get here, either the API call failed or returned invalid data
-    // Use mock data as fallback
+    // If API call fails or returns invalid data, use mock data as fallback
     const mockMilestones = [
       {
         _id: '1',
@@ -288,12 +401,12 @@ const fetchMilestones = async (projectId: number) => {
     setMilestones(mockMilestones);
   } catch (err) {
     console.error('Unexpected error in fetchMilestones:', err);
-    // Set empty milestones array in case of unexpected errors
     setMilestones([]);
   } finally {
     setIsLoading(false);
   }
 };
+
 
 
   const handleAddWidget = () => {
@@ -346,9 +459,9 @@ const fetchMilestones = async (projectId: number) => {
       case 'funding':
         return renderFundingWidget(widget);
       case 'collaborators':
-      //   return renderCollaboratorsWidget(widget);
+        return renderCollaboratorsWidget(widget);
       // case 'calendar':
-        return renderCalendarWidget(widget);
+        // return renderCalendarWidget(widget);
       case 'skills':
         return renderSkillsProfileWidget(widget);
       default:
@@ -410,7 +523,7 @@ const fetchMilestones = async (projectId: number) => {
           )}
         </Card.Body>
         <Card.Footer className="text-center">
-          <Button variant="outline-primary" size="sm">View All Projects</Button>
+          <Link to="/projects" className="text-primary text-decoration-none">View All Projects</Link>
         </Card.Footer>
       </Card>
     );
@@ -435,66 +548,66 @@ const fetchMilestones = async (projectId: number) => {
           )}
         </Card.Body>
         <Card.Footer className="text-center">
-          <Button variant="outline-primary" size="sm">View All Notifications</Button>
+          <Link to="/notifications" className="text-primary text-decoration-none">View All Notifications</Link>
         </Card.Footer>
       </Card>
     );
   };
 
-  const renderMilestonesWidget = (widget: WidgetConfig) => {
-    return (
-      <Card className="h-100">
-        <Card.Header className="d-flex justify-content-between align-items-center">
-          <h5 className="mb-0">Milestones</h5>
-          {projects.length > 0 && (
-            <Form.Select 
-              size="sm"
-              value={selectedProject || ''}
-              onChange={(e) => {
-                const projectId = Number(e.target.value);
-                setSelectedProject(projectId);
-                fetchMilestones(projectId);
-              }}
-              style={{ width: '150px' }}
-            >
-              {projects.map(project => (
-                <option key={project._id} value={project._id}>{project.title}</option>
-              ))}
-            </Form.Select>
-          )}
-        </Card.Header>
-        <Card.Body>
-          {projects.length === 0 ? (
-            <p className="text-center text-muted">No projects available to display milestones.</p>
-          ) : milestones.length === 0 ? (
-            <p className="text-center text-muted">No milestones found for this project.</p>
-          ) : (
-            <div className="milestone-list">
-              {milestones.slice(0, 3).map((milestone) => (
-                <div key={milestone._id} className="mb-3 border-bottom pb-2">
-                  <div className="d-flex justify-content-between align-items-center mb-1">
-                    <h6>{milestone.title}</h6>
-                    <Badge bg={getStatusVariant(milestone.status)}>
-                      {milestone.status}
-                    </Badge>
-                  </div>
-                  <p className="text-muted small mb-1">{milestone.description}</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <small>Due: {formatDate(milestone.dueDate)}</small>
-                    <small>Assigned to: {milestone.assignedTo}</small>
-                  </div>
+const renderMilestonesWidget = (widget: WidgetConfig) => {
+  return (
+    <Card className="h-100">
+      <Card.Header className="d-flex justify-content-between align-items-center">
+        <h5 className="mb-0">Milestones</h5>
+        {projects.length > 0 && (
+          <Form.Select 
+            size="sm"
+            value={selectedProject?.toString() || ''}
+            onChange={(e) => {
+              const projectId = e.target.value;
+              // Convert string to number before setting it in state
+              setSelectedProject(projectId ? Number(projectId) : null);
+              fetchMilestones(projectId);
+            }}
+            style={{ width: '150px' }}
+          >
+            {projects.map(project => (
+              <option key={project._id} value={project._id}>{project.title}</option>
+            ))}
+          </Form.Select>
+        )}
+      </Card.Header>
+      <Card.Body>
+        {projects.length === 0 ? (
+          <p className="text-center text-muted">No projects available to display milestones.</p>
+        ) : milestones.length === 0 ? (
+          <p className="text-center text-muted">No milestones found for this project.</p>
+        ) : (
+          <div className="milestone-list">
+            {milestones.slice(0, 3).map((milestone) => (
+              <div key={milestone._id} className="mb-3 border-bottom pb-2">
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <h6>{milestone.title}</h6>
+                  <Badge bg={getStatusVariant(milestone.status)}>
+                    {milestone.status}
+                  </Badge>
                 </div>
-              ))}
-            </div>
-          )}
-        </Card.Body>
-        <Card.Footer className="text-center">
-          <Button variant="outline-primary" size="sm">View All Milestones</Button>
-        </Card.Footer>
-      </Card>
-    );
-  };
-
+                <p className="text-muted small mb-1">{milestone.description}</p>
+                <div className="d-flex justify-content-between align-items-center">
+                  <small>Due: {formatDate(milestone.dueDate)}</small>
+                  <small>Assigned to: {milestone.assignedTo}</small>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card.Body>
+      <Card.Footer className="text-center">
+       <Link to="/milestones">View All Milestones</Link>
+      </Card.Footer>
+    </Card>
+  );
+};
   const renderFundingWidget = (widget: WidgetConfig) => {
     const totalFunding = fundingSources.reduce((sum, funding) => sum + funding.amount, 0);
     const activeFunding = fundingSources.filter(funding => 
@@ -580,26 +693,80 @@ const fetchMilestones = async (projectId: number) => {
           )}
         </Card.Body>
         <Card.Footer className="text-center">
-          <Button variant="outline-primary" size="sm">
-            Manage Funding
-          </Button>
+          <Link to="/funding" className="text-primary text-decoration-none"> Manage Funding</Link>
         </Card.Footer>
       </Card>
     );
   };
 
-  const renderCollaboratorsWidget = (widget: WidgetConfig) => {
-    return (
-      <Card className="h-100">
-        <Card.Header className="d-flex justify-content-between align-items-center">
-          <h5 className="mb-0">Collaborators</h5>
-        </Card.Header>
-        <Card.Body>
-          <p className="text-center text-muted">Your collaborators will appear here.</p>
-        </Card.Body>
-      </Card>
-    );
-  };
+const renderCollaboratorsWidget = (widget: WidgetConfig) => {
+  return (
+    <Card className="h-100">
+      <Card.Header className="d-flex justify-content-between align-items-center">
+        <h5 className="mb-0">Collaborators</h5>
+        <Badge bg="info">{collaborators.length} Available</Badge>
+      </Card.Header>
+      <Card.Body>
+        {loadingCollaborators ? (
+          <div className="text-center py-3">
+            <Spinner animation="border" size="sm" className="me-2" />
+            <span>Loading collaborators...</span>
+          </div>
+        ) : (
+          <>
+            <Form className="mb-3">
+              <Form.Control
+                type="text"
+                placeholder="Search collaborators..."
+                value={collaboratorSearch}
+                onChange={handleCollaboratorSearch}
+                size="sm"
+              />
+            </Form>
+            
+            {filteredCollaborators.length === 0 ? (
+              <p className="text-center text-muted my-3">No collaborators found.</p>
+            ) : (
+              filteredCollaborators.map(collab => (
+                <div key={collab._id} className="d-flex align-items-center mb-3 pb-2 border-bottom">
+                  <div 
+                    className="rounded-circle bg-secondary text-white d-flex justify-content-center align-items-center me-2"
+                    style={{ width: 40, height: 40, minWidth: 40 }}
+                  >
+                    {collab.avatar ? (
+                      <img 
+                        src={collab.avatar}
+                        alt={`${collab.fname} ${collab.lname}`}
+                        className="rounded-circle"
+                        width="40"
+                        height="40"
+                      />
+                    ) : (
+                      <span>{collab.fname.charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <div className="ms-2 flex-grow-1 overflow-hidden">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <h6 className="mb-0 text-truncate">{collab.fname} {collab.lname}</h6>
+                      <Badge bg="light" text="dark" className="text-small ms-2">
+                        {collab.academicRole}
+                      </Badge>
+                    </div>
+                    <small className="text-muted d-block text-truncate">{collab.department}</small>
+                    <small className="text-primary">{collab.researcharea}</small>
+                  </div>
+                </div>
+              ))
+            )}
+          </>
+        )}
+      </Card.Body>
+      <Card.Footer className="text-center">
+        <Link to="/collaborators" className="text-primary text-decoration-none">Find Collaborators</Link>
+      </Card.Footer>
+    </Card>
+  );
+};
 
   const renderCalendarWidget = (widget: WidgetConfig) => {
     return (

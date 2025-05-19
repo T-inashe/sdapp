@@ -3,15 +3,12 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AuthProvider from './context/AuthProvider';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
-import Dashboard from './components/dashboard/Dashboard';
-import AuthContext from './context/AuthContext';
 import NotificationsPage from './pages/NotificationsPage';
 import ChatPage from './pages/Chat';
 import IndividualChatPage from './pages/IndividualChat';
 import MessagesPage from './pages/Messages';
 import AllMessagesPage from './pages/AllMessages';
 import Collaborators from './components/Collaborators';
-import ViewCollaborators from './components/ViewCollaborators'
 import ResearchCollabLanding from './pages/ResearchCollabLanding';
 import './App.css';
 import ApplyPage from './components/BeCollaborator'
@@ -24,7 +21,8 @@ import CollaboratorDashboard from './components/dashboard/CollaboratorDashboard'
 import ReviewerDashboard from './components/dashboard/ReviewerDashboard';
 import AdminDashboard from './components/dashboard/AdminDashboard';
 import MyDashboard from './components/dashboard/MyDashboard';
-
+import MilestoneDashboard from './components/dashboard/MilestoneDashboard';
+import ResearchFundingDashboard from './components/dashboard/ResearchFundingDashboard';
 // Protected route component
 // const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 //   const { isAuthenticated } = useContext(AuthContext);
@@ -47,6 +45,8 @@ const App: React.FC = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/collaboratordashboard" element={<CollaboratorDashboard />} />
           <Route path="/admindashboard" element={<AdminDashboard />} />
+          <Route path="/milestones" element={<MilestoneDashboard />} />
+          <Route path="/funding" element={<ResearchFundingDashboard />} />
           <Route path="/mydashboard" element={<MyDashboard />} />
           <Route path="/reviewerdashboard" element={<ReviewerDashboard />} />
           <Route path="/notifications" element={<NotificationsPage />} />
@@ -62,11 +62,6 @@ const App: React.FC = () => {
           {/* Routes for viewing and editing specific projects */}
           <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/projects/:id/edit" element={<EditProject />} />
-          <Route path="/dashboard" element={
-            // <ProtectedRoute>
-              <Dashboard />
-            // </ProtectedRoute>
-          } />
 
         {/* Routes for viewing and editing specific projects */}
         {/* <Route path="/projects/:id" element={<ProjectDetails />} />

@@ -849,6 +849,7 @@ const CollaboratorDashboard: React.FC = () => {
                             </Button>
                           </Link>
                             <Link to={`/projects`}>
+                              <Button variant="outline-secondary" size="sm">
                               My Tasks
                             </Button>
                           </Link>

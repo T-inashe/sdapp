@@ -333,37 +333,37 @@ const AdminDashboard: React.FC = () => {
                           <th>Name</th>
                           <th>Institution</th>
                           <th>Contact</th>
-                          <th>Role</th>
                           <th>Joined</th>
                           <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-{users.map(user => (
-  <tr key={user._id}>
-    <td>{user.fname}</td>
-    <td>{user.department}</td>
-    <td>{user.contact}</td>
-    <td>
-      <Badge bg={
-        user.role === 'Admin' ? 'danger' :
-        user.role === 'Reviewer' ? 'warning' : 'primary'
-      }>
-        {user.role}
-      </Badge>
-    </td>
-    <td>{formatDate(user.createdAt)}</td>
-    <td>
-      <Button 
-        variant="outline-primary" 
-        size="sm"
-        onClick={() => handleRoleChange(user)}
-      >
-        Edit Role
-      </Button>
-    </td>
-  </tr>
-))}
+                        {users.map(user => (
+                          <tr key={user._id}>
+                            <td>{user.fname}</td>
+                            <td>{user.department}</td>
+                            <td>{user.contact}</td>
+                            <td>{user.role}</td>
+                            <td>
+                              <Badge bg={
+                                user.role === 'Admin' ? 'danger' :
+                                user.role === 'Reviewer' ? 'warning' : 'primary'
+                              }>
+                                {user.role}
+                              </Badge>
+                            </td>
+                            <td>{formatDate(user.createdAt)}</td>
+                            <td>
+                              <Button 
+                                variant="outline-primary" 
+                                size="sm"
+                                onClick={() => handleRoleChange(user)}
+                              >
+                                Edit Role
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </Table>
                   </Card.Body>

@@ -6,6 +6,8 @@ import {
   updateCollaborator,
   deleteCollaboratorById,
   getInvitesByReceiverId,
+  getApplicationRequestsBySenderId,
+  acceptApplication,
   acceptInvite,
   declineInvite,
 } from '../Controller/CollaboratorC.js'; // Adjust path as needed
@@ -40,6 +42,16 @@ router.get('/receiver/:userId', async (req, res) => {
     res.status(200).json(invites);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching user invites', error: error.message });
+  }
+});
+
+router.get('/request/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const requests = await getApplicationRequestsBySenderId(userId);
+    res.status(200).json(requests);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user requests', error: error.message });
   }
 });
 
@@ -79,6 +91,17 @@ router.put('/:id/accept', async (req, res) => {
     res.status(500).json({ message: 'Error accepting invite', error: error.message });
   }
 });
+
+router.put('/:id/acceptapplication', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const acceptedapplication = await acceptApplication(id);
+    res.status(200).json(acceptedapplication);
+  } catch (error) {
+    res.status(500).json({ message: 'Error accepting invite', error: error.message });
+  }
+});
+
 
 // PUT: Decline an invite
 router.put('/:id/decline', async (req, res) => {

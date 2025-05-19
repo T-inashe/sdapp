@@ -56,11 +56,12 @@ const ProjectCollaborator: React.FC = () => {
     if (!message || !user?.id || !project?.creator?._id) return;
 
     try {
-      await axios.post(`${config.API_URL}/api/message`, {
+      await axios.post(`${config.API_URL}/api/collaborator`, {
         sender: user?.id,
         receiver: project.creator._id,
-        content: message,
-        projectId: project._id
+        message: message,
+        project: project._id,
+        type: 'application'
       }, {
         withCredentials: true
       });

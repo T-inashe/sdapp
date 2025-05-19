@@ -81,7 +81,8 @@ const Collaborators: React.FC = () => {
         sender: user.id,
         receiver: receiverId,
         project: id,
-        message:content
+        message:content,
+        type:'invite'
       }, {
         withCredentials: true
       });

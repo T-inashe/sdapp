@@ -25,6 +25,10 @@ const CollaboratorInviteSchema = new mongoose.Schema({
     enum: ['Pending', 'Accepted', 'Declined'],
     default: 'Pending',
   },
+   type: { 
+    type: String,
+    enum: ['invite', 'application'], 
+    required: true },
   respondedAt: {
     type: Date,
     default: null,

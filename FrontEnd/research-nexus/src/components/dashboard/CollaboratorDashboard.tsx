@@ -12,7 +12,6 @@ import ResearchFundingDashboard from './ResearchFundingDashboard';
 import { FiDollarSign } from 'react-icons/fi';
 import MyDashboard from './MyDashboard';
 import MilestoneDashboard from './MilestoneDashboard';
-import ProjectCollaboratorsList from '../ViewCollaborators';
 
 interface Project {
   _id: number;
@@ -91,9 +90,6 @@ const CollaboratorDashboard: React.FC = () => {
   const [externalOpportunities, setExternalOpportunities] = useState<ExternalOpportunities[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-  const [projectName, setProjectName] = useState('');
-
 
   const fetchOpportunities = async () => {
     try {
@@ -373,19 +369,12 @@ const CollaboratorDashboard: React.FC = () => {
           >
             <FiBriefcase className="me-2" /> My Projects
           </Nav.Link>
-              {opportunities.map((opportunity) => (
-        <Nav.Link
-          key={opportunity.id} // Always add a unique key when mapping
-          className={activeTab === 'collaborators' ? 'active' : ''}
-          onClick={() => {
-            setActiveTab('collaborators');
-            setSelectedProjectId(opportunity.id); 
-            setProjectName(opportunity.title);
-          }}
-        >
-          <FiUsers className="me-2" /> Collaborators
-        </Nav.Link>
-      ))}
+           <Nav.Link
+            className={activeTab === 'collaborators' ? 'active' : ''}
+            onClick={() => setActiveTab('collaborators')}
+          >
+            <FiUsers className="me-2" /> Collaborators
+          </Nav.Link>
           <Nav.Link
   className={activeTab === 'milestonedashboard' ? 'active' : ''}
   onClick={() => setActiveTab('milestonedashboard')}
@@ -848,8 +837,8 @@ const CollaboratorDashboard: React.FC = () => {
                               View Project
                             </Button>
                           </Link>
-                            <Link to={`/projects`}>
-                              <Button variant="outline-secondary" size="sm">
+                          <Link to="/milestones">
+                            <Button variant="outline-secondary" size="sm">
                               My Tasks
                             </Button>
                           </Link>
@@ -861,9 +850,6 @@ const CollaboratorDashboard: React.FC = () => {
               </Col>
             </Row>
           </Container>
-        )}
-        {activeTab === 'collaborators' && selectedProjectId && (
-          <ProjectCollaboratorsList  projectId={selectedProjectId} projectName={projectName}/>
         )}
 
         {activeTab === 'messages' && <MessagePage />}

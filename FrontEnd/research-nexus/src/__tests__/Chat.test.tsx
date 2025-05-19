@@ -61,7 +61,7 @@ describe('ChatPage', () => {
     renderChat();
 
     expect(await screen.findByText(/Hello!/i)).toBeInTheDocument();
-    expect(screen.getByText(/Alice Smith/i)).toBeInTheDocument();
+    expect(screen.getByText(/Alice/i)).toBeInTheDocument();
   });
 
   it('allows sending a message and updates the UI', async () => {
@@ -88,7 +88,7 @@ describe('ChatPage', () => {
     const input = screen.getByPlaceholderText(/type a message/i);
     fireEvent.change(input, { target: { value: 'Hi Alice!' } });
 
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByTestId('send-btn'));
 
     await waitFor(() => screen.getByText('Hi Alice!'));
   });

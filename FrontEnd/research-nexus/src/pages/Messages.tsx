@@ -99,7 +99,7 @@ const CollaboratorInvitesPage: React.FC = () => {
   if (loading) {
     return (
       <div className="messages-spinner">
-        <Spinner animation="border" />
+        <Spinner animation="border" role="status"/>
       </div>
     );
   }

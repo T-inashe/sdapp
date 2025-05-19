@@ -206,7 +206,7 @@ const getDashboardTitle = () => {
             >
               <FiPaperclip size={20} />
             </button>
-            <button className="send-btn" onClick={sendMessage}>
+            <button className="send-btn" data-testid="send-btn" onClick={sendMessage}>
               &#9658;
             </button>
           </div>

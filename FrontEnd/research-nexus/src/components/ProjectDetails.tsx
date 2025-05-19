@@ -38,21 +38,34 @@ const ProjectDetail: React.FC = () => {
 
  const [exporting, setExporting] = useState(false);
 
-const handleExportPDF = () => {
+const handleExportPDF = async () => {
   if (!reportRef.current) return;
 
   setExporting(true);
 
   try {
     // @ts-ignore
-    const html2pdf = window.html2pdf;
+    const html2canvas = window.html2canvas;
+    // @ts-ignore
+    const { jsPDF } = window.jspdf;
 
-    html2pdf()
-      .from(reportRef.current)
-      .save()
-      .finally(() => setExporting(false));
+    const canvas = await html2canvas(reportRef.current, {
+      useCORS: true, 
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.7);
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    // Calculate image dimensions to fit A4
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('report.pdf');
   } catch (err) {
     console.error('PDF export error:', err);
+  } finally {
     setExporting(false);
   }
 };

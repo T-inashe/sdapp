@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Form, Button } from 'react-bootstrap';
 import { 
   PieChart, Pie, BarChart, Bar, XAxis, YAxis, 
@@ -6,7 +6,7 @@ import {
   LineChart, Line, AreaChart, Area
 } from 'recharts';
 
-interface FundingDetails {
+export interface FundingDetails {
   projectId: number;
   projectTitle: string;
   funder: string;
@@ -14,10 +14,10 @@ interface FundingDetails {
   spent: number;
   remaining: number;
   endDate: string;
-  status: 'Active' | 'Expired' | 'Low Funds';
+  fundstatus: 'Active' | 'Expired' | 'Low Funds'| 'Out Of Funds';
 }
 
-interface Expense {
+export interface Expense {
   id: string;
   projectId: number;
   description: string;
@@ -41,7 +41,8 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
 }) => {
   const [chartType, setChartType] = useState<'allocation' | 'timeline' | 'category' | 'comparison'>('allocation');
   const [timeFrame, setTimeFrame] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly');
-  
+  const reportRef = useRef<HTMLDivElement>(null);
+   const [exporting, setExporting] = useState(false);
   // Prepare data for allocation chart (how remaining vs spent)
   const getAllocationData = () => {
     if (!selectedProject) {
@@ -54,6 +55,38 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
     ];
   };
   
+const handleExportPDF = async () => {
+  if (!reportRef.current) return;
+
+  setExporting(true);
+
+  try {
+    // @ts-ignore
+    const html2canvas = window.html2canvas;
+    // @ts-ignore
+    const { jsPDF } = window.jspdf;
+
+    const canvas = await html2canvas(reportRef.current, {
+      useCORS: true, 
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.7);
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    // Calculate image dimensions to fit A4
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('report.pdf');
+  } catch (err) {
+    console.error('PDF export error:', err);
+  } finally {
+    setExporting(false);
+  }
+};
+
   // Prepare data for expense categories
   const getCategoryData = () => {
     if (!selectedProject) {
@@ -155,7 +188,8 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="text-center p-5">
+                <div className="text-center p-5" 
+                data-testid="no-project-message">
                   <p>Select a project to view budget allocation</p>
                 </div>
               )}
@@ -274,9 +308,9 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
     const totalAwarded = fundingDetails.reduce((sum, fund) => sum + fund.awarded, 0);
     const totalSpent = fundingDetails.reduce((sum, fund) => sum + fund.spent, 0);
     const totalRemaining = fundingDetails.reduce((sum, fund) => sum + fund.remaining, 0);
-    const activeProjects = fundingDetails.filter(fund => fund.status === 'Active').length;
-    const expiredProjects = fundingDetails.filter(fund => fund.status === 'Expired').length;
-    const lowFundsProjects = fundingDetails.filter(fund => fund.status === 'Low Funds').length;
+    const activeProjects = fundingDetails.filter(fund => fund.fundstatus === 'Active').length;
+    const expiredProjects = fundingDetails.filter(fund => fund.fundstatus === 'Expired').length;
+    const lowFundsProjects = fundingDetails.filter(fund => fund.fundstatus === 'Low Funds').length;
     
     return {
       totalAwarded,
@@ -292,7 +326,7 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
   const metrics = calculateMetrics();
   
   return (
-    <Container fluid>
+    <Container fluid ref={reportRef}>
       <Row className="mb-4">
         <Col>
           <Card>
@@ -407,6 +441,16 @@ const FundingVisualization: React.FC<FundingVisualizationProps> = ({
           {renderChart()}
         </Col>
       </Row>
+       <div style={{ display: 'flex' }}>
+      <Button 
+        onClick={handleExportPDF} 
+        disabled={exporting}
+        style={{ marginLeft: 'auto' }}
+      >
+        {exporting ? 'Exporting...' : 'Export as PDF'}
+      </Button>
+    </div>
+
     </Container>
   );
 };

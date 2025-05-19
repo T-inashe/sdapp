@@ -147,6 +147,27 @@
   margin-bottom: 10px;     
 }
 
+.download-link-container {
+  position: absolute;
+  bottom: 10px;
+  left: 15px;
+}
+
+.download-link {
+  display: inline-block;
+  padding: 6px 12px;
+  background-color: #59646f;
+  color: #fff;
+  font-size: 0.9rem;
+  border-radius: 5px;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+}
+
+.download-link:hover {
+  background-color: #5d8abdba;
+  text-decoration: none;
+}
 
 .project-title h5 {
   font-weight: 800; /* Even bolder */

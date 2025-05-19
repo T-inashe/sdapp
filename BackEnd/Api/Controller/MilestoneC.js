@@ -1,54 +1,52 @@
-import { Request, Response } from 'express';
-import Milestone from '../Models/Milestone';
+import Milestone from '../Models/Milestone.js';
 
 // Create a new milestone
-export const createMilestone = async (req, res) => {
+export const createMilestone = async (payload) => {
   try {
-    const milestone = new Milestone(req.body);
-    await milestone.save();
-    res.status(201).json(milestone);
+    const milestone = new Milestone(payload);
+    return await milestone.save();
   } catch (error) {
-    res.status(400).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+    console.error('Error creating milestone:', error);
+    throw new Error('Failed to create milestone');
+  }
+};
+
+// Get all milestones for a project
+export const getMilestonesByProject = async (projectId) => {
+  try {
+    return await Milestone.find({ projectId });
+  } catch (error) {
+    console.error('Error fetching milestones by project:', error);
+    throw new Error('Failed to fetch milestones');
+  }
+};
+
+// Get a milestone by ID
+export const getMilestoneById = async (id) => {
+  try {
+    return await Milestone.findById(id);
+  } catch (error) {
+    console.error('Error fetching milestone by ID:', error);
+    throw new Error('Failed to fetch milestone by ID');
   }
 };
 
 // Update a milestone
-export const updateMilestone = async (req, res) => {
+export const updateMilestone = async (id, payload) => {
   try {
-    const { id } = req.params;
-    const milestone = await Milestone.findByIdAndUpdate(id, req.body, { new: true });
-    res.json(milestone);
+    return await Milestone.findByIdAndUpdate(id, payload, { new: true });
   } catch (error) {
-    res.status(400).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+    console.error('Error updating milestone:', error);
+    throw new Error('Failed to update milestone');
   }
 };
 
 // Delete a milestone
-export const deleteMilestone = async (req, res) => {
+export const deleteMilestoneById = async (id) => {
   try {
-    const { id } = req.params;
-    await Milestone.findByIdAndDelete(id);
-    res.status(204).send();
+    return await Milestone.findByIdAndDelete(id);
   } catch (error) {
-    res.status(400).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+    console.error('Error deleting milestone:', error);
+    throw new Error('Failed to delete milestone');
   }
-};
-
-// Get milestones for a project
-export const getMilestonesByProject = async (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const milestones = await Milestone.find({ projectId });
-    res.json(milestones);
-  } catch (error) {
-    res.status(400).json({ error: error instanceof Error ? error.message : 'Unknown error' });
-  }
-};
-
-// Export all controller methods
-export default {
-  createMilestone,
-  updateMilestone,
-  deleteMilestone,
-  getMilestonesByProject
 };

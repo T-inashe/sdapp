@@ -5,11 +5,14 @@ import {
   getCollaboratorById,
   updateCollaborator,
   deleteCollaboratorById,
+  getInvitesByReceiverId,
+  acceptInvite,
+  declineInvite,
 } from '../Controller/CollaboratorC.js'; // Adjust path as needed
 
 const router = express.Router();
 
-// POST: Create a new collaborator
+// POST: Create a new invite/collaborator
 router.post('/', async (req, res) => {
   try {
     const collaborator = await createCollaborator(req.body);
@@ -19,13 +22,24 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET: All collaborators
+// GET: All collaborators (admin/debug)
 router.get('/', async (req, res) => {
   try {
     const collaborators = await getAllCollaborators();
     res.status(200).json(collaborators);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching collaborators', error: error.message });
+  }
+});
+
+// GET: Collaborators sent to a user
+router.get('/receiver/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const invites = await getInvitesByReceiverId(userId);
+    res.status(200).json(invites);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user invites', error: error.message });
   }
 });
 
@@ -44,7 +58,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// PUT: Update a collaborator
+// PUT: Update a collaborator (admin/debug)
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -55,7 +69,29 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE: Delete a collaborator by ID
+// PUT: Accept an invite
+router.put('/:id/accept', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const acceptedInvite = await acceptInvite(id);
+    res.status(200).json(acceptedInvite);
+  } catch (error) {
+    res.status(500).json({ message: 'Error accepting invite', error: error.message });
+  }
+});
+
+// PUT: Decline an invite
+router.put('/:id/decline', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const declinedInvite = await declineInvite(id);
+    res.status(200).json(declinedInvite);
+  } catch (error) {
+    res.status(500).json({ message: 'Error declining invite', error: error.message });
+  }
+});
+
+// DELETE: Delete a collaborator
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {

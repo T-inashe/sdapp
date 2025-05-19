@@ -92,6 +92,22 @@ export const getResearchProjectById = async (id) => {
   }
 };
 
+// Fetch full collaborator details for a project
+export const getCollaboratorsByProjectId = async (projectId) => {
+  try {
+    const project = await ResearchProject.findById(projectId).populate('collaborators');
+
+    if (!project) {
+      throw new Error('Research project not found');
+    }
+
+    return project.collaborators; // returns array of full User documents
+  } catch (error) {
+    throw new Error(`Error fetching collaborators for project ${projectId}: ${error.message}`);
+  }
+};
+
+
 // UPDATE a research project
 export const updateResearchProject = async (id, payload) => {
   try {

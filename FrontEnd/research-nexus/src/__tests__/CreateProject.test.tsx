@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import CreateProject from '../components/CreateProject';
 import { BrowserRouter } from 'react-router-dom';
 import axios from 'axios';
+import AuthContext from '../context/AuthContext'; // Import the AuthContext
 
 // Mock navigate and axios
 jest.mock('axios');
@@ -14,13 +15,37 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
+// Mock user context
+const mockUser = {
+  id: 'user123',
+  name: 'John Doe',
+  email: 'john@example.com',
+  fname: 'John',
+  lname: 'Doe',
+  academicRole: 'Researcher',
+  department: 'Computer Science',
+  researchExperience: 'Intermediate',
+  researcharea: 'AI',
+};
+const mockAuthContext = {
+  user: mockUser,
+  login: jest.fn(),
+  logout: jest.fn(),
+  isAuthenticated: true,
+};
+
 const renderWithRouter = (ui: React.ReactElement) => {
-  return render(<BrowserRouter>{ui}</BrowserRouter>);
+  return render(
+    <AuthContext.Provider value={mockAuthContext}>
+      <BrowserRouter>{ui}</BrowserRouter>
+    </AuthContext.Provider>
+  );
 };
 
 describe('CreateProject', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(HTMLFormElement.prototype, 'checkValidity').mockImplementation(() => true);
   });
 
   test('renders form fields', () => {
@@ -60,37 +85,54 @@ describe('CreateProject', () => {
     fireEvent.change(screen.getByLabelText(/Institution/i), { target: { value: 'Tech University' } });
     fireEvent.change(screen.getByLabelText(/Contact Email/i), { target: { value: 'contact@techuni.edu' } });
 
+    // Add a mock file
+    const mockFile = new File(['dummy content'], 'example.pdf', { type: 'application/pdf' });
+    const fileInput = screen.getByLabelText(/Upload Project Image\/File/i);
+    fireEvent.change(fileInput, { target: { files: [mockFile] } });
+
     fireEvent.click(screen.getByRole('button', { name: /Create Project/i }));
 
     await waitFor(() => {
       expect(mockedAxios.post).toHaveBeenCalled();
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+      expect(mockNavigate).toHaveBeenCalledWith('/collaboratordashboard');
     });
   }, 30000);
 
   test('displays error message if submission fails', async () => {
-    mockedAxios.post.mockResolvedValueOnce({
-      data: { success: false, message: 'Invalid data' },
-    });
-  
-    renderWithRouter(<CreateProject />);
-  
-    fireEvent.change(screen.getByLabelText(/Project Title/i), { target: { value: 'Fail Case' } });
-    fireEvent.change(screen.getByLabelText(/Description/i), { target: { value: 'desc' } });
-    fireEvent.change(screen.getByLabelText(/Research Goals/i), { target: { value: 'goals' } });
-    fireEvent.change(screen.getByLabelText(/Research Area/i), { target: { value: 'Other' } });
-    fireEvent.change(screen.getByLabelText(/Start Date/i), { target: { value: '2025-01-01' } });
-    fireEvent.change(screen.getByLabelText(/End Date/i), { target: { value: '2025-12-31' } });
-    fireEvent.change(screen.getByLabelText(/Contact Email/i), { target: { value: 'fail@example.com' } });
-  
-    fireEvent.click(screen.getByRole('button', { name: /Create Project/i }));
-  
-    await waitFor(() => {
-      const errorElement = screen.getByTestId('form-error');
-      expect(errorElement).toHaveTextContent(/Invalid data/i);
-    });
+  mockedAxios.post.mockResolvedValueOnce({
+    data: { success: false, message: 'Invalid data' },
   });
-  
+
+  renderWithRouter(<CreateProject />);
+
+  fireEvent.change(screen.getByLabelText(/Project Title/i), { target: { value: 'Fail Case' } });
+  fireEvent.change(screen.getByLabelText(/Description/i), { target: { value: 'desc' } });
+  fireEvent.change(screen.getByLabelText(/Research Goals/i), { target: { value: 'goals' } });
+  fireEvent.change(screen.getByLabelText(/Research Area/i), { target: { value: 'Artificial Intelligence' } });
+  fireEvent.change(screen.getByLabelText(/Start Date/i), { target: { value: '2025-01-01' } });
+  fireEvent.change(screen.getByLabelText(/End Date/i), { target: { value: '2025-12-31' } });
+  fireEvent.change(screen.getByLabelText(/Contact Email/i), { target: { value: 'fail@example.com' } });
+
+  // Add mock file and simulate input
+  const fileInput = screen.getByLabelText(/Upload Project Image\/File/i);
+  const mockFile = new File(['dummy content'], 'example.pdf', { type: 'application/pdf' });
+  const changeEvent = {
+    target: {
+      files: [mockFile],
+    },
+  };
+  fireEvent.change(fileInput, changeEvent);
+
+  fireEvent.click(screen.getByRole('button', { name: /Create Project/i }));
+
+  await waitFor(() => {
+    expect(mockedAxios.post).toHaveBeenCalled();
+  });
+
+  const alert = await screen.findByTestId('form-error');
+  expect(alert).toHaveTextContent(/Invalid data/i);
+});
+
 
   test('displays validation error for end date earlier than start date', async () => {
     renderWithRouter(<CreateProject />);
@@ -98,7 +140,7 @@ describe('CreateProject', () => {
     fireEvent.change(screen.getByLabelText(/Project Title/i), { target: { value: 'AI Research' } });
     fireEvent.change(screen.getByLabelText(/Description/i), { target: { value: 'Exploring models' } });
     fireEvent.change(screen.getByLabelText(/Research Goals/i), { target: { value: 'Better ML methods' } });
-    fireEvent.change(screen.getByLabelText(/Research Area/i), { target: { value: 'Artificial Intelligence' } });
+    fireEvent.select(screen.getByLabelText(/Research Area/i), { target: { value: 'Artificial Intelligence' } });
     fireEvent.change(screen.getByLabelText(/Start Date/i), { target: { value: '2025-12-31' } });
     fireEvent.change(screen.getByLabelText(/End Date/i), { target: { value: '2025-01-01' } });
     fireEvent.change(screen.getByLabelText(/Contact Email/i), { target: { value: 'test@example.com' } });

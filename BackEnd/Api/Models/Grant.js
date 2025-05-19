@@ -1,7 +1,12 @@
 import mongoose from 'mongoose';
 
 const grantSchema = new mongoose.Schema({
-  grantTitle: {
+   projectId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Project',
+        required: true,
+      }, 
+  projectTitle: {
     type: String,
     required: true,
   },
@@ -27,11 +32,6 @@ const grantSchema = new mongoose.Schema({
   },
   endDate: {
     type: Date,
-    required: true,
-  },
-  researcher: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // assuming 'User' is the researcher model
     required: true,
   },
   status: {

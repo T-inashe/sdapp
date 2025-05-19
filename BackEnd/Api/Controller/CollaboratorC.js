@@ -1,34 +1,48 @@
 import Collaborator from '../Models/Collaborator.js';
+import ResearchProject from '../Models/Project.js';
 import Notification from '../Models/Notification.js';
 
-// CREATE a collaborator
+// CREATE an invite
 export const createCollaborator = async (payload) => {
   try {
-    const newCollaborator = new Collaborator({
-      ...payload,
-    });
-
+    const newCollaborator = new Collaborator({ ...payload });
     const savedCollaborator = await newCollaborator.save();
+
+    // Send a notification to the receiver
+    const newNotification = new Notification({
+      message: `You have been invited to collaborate on a project.`,
+      user: payload.receiver,
+      type: 'Invite',
+    });
+    await newNotification.save();
+
     return savedCollaborator;
   } catch (error) {
     throw new Error(`Error creating collaborator: ${error.message}`);
   }
 };
 
-// READ all collaborators
+// GET all invites (for admin/debug)
 export const getAllCollaborators = async () => {
   try {
-    const collaborators = await Collaborator.find().populate('project_id');
+    const collaborators = await Collaborator.find()
+      .populate('project')
+      .populate('sender')
+      .populate('receiver');
     return collaborators;
   } catch (error) {
     throw new Error(`Error fetching collaborators: ${error.message}`);
   }
 };
 
-// READ a collaborator by ID
+// GET single invite by ID
 export const getCollaboratorById = async (id) => {
   try {
-    const collaborator = await Collaborator.findById(id).populate('project_id');
+    const collaborator = await Collaborator.findById(id)
+      .populate('project')
+      .populate('sender')
+      .populate('receiver');
+
     if (!collaborator) {
       throw new Error('Collaborator not found');
     }
@@ -38,7 +52,97 @@ export const getCollaboratorById = async (id) => {
   }
 };
 
-// UPDATE a collaborator
+// GET invites sent to a specific user
+export const getInvitesByReceiverId = async (userId) => {
+  try {
+    const invites = await Collaborator.find({
+      receiver: userId,
+    })
+      .populate('project')
+      .populate('sender');
+
+    return invites;
+  } catch (error) {
+    throw new Error(`Error fetching user invites: ${error.message}`);
+  }
+};
+
+// ACCEPT an invite
+export const acceptInvite = async (inviteId) => {
+  try {
+    const invite = await Collaborator.findById(inviteId)
+      .populate('receiver', 'fname lname')
+      .populate('sender', 'fname lname');
+
+    if (!invite || invite.status !== 'Pending') {
+      throw new Error('Invite not found or already responded to');
+    }
+
+    invite.status = 'Accepted';
+    invite.respondedAt = new Date();
+    await invite.save();
+
+    await ResearchProject.findByIdAndUpdate(invite.project, {
+      $addToSet: { collaborators: invite.receiver._id },
+    });
+
+    const notification = new Notification({
+      message: `${invite.receiver.fname} ${invite.receiver.lname} accepted your project invite.`,
+      user: invite.sender._id,
+      type: 'success',
+    });
+    await notification.save();
+
+    return invite;
+  } catch (error) {
+    throw new Error(`Error accepting invite: ${error.message}`);
+  }
+};
+
+
+// DECLINE an invite
+export const declineInvite = async (inviteId) => {
+  try {
+    const invite = await Collaborator.findById(inviteId)
+      .populate('receiver', 'fname lname')
+      .populate('sender', 'fname lname');
+
+    if (!invite || invite.status !== 'Pending') {
+      throw new Error('Invite not found or already responded to');
+    }
+
+    invite.status = 'Declined';
+    invite.respondedAt = new Date();
+    await invite.save();
+
+    const notification = new Notification({
+      message: `${invite.receiver.fname} ${invite.receiver.lname} declined your project invite.`,
+      user: invite.sender._id,
+      type: 'InviteDeclined',
+    });
+    await notification.save();
+
+    return invite;
+  } catch (error) {
+    throw new Error(`Error declining invite: ${error.message}`);
+  }
+};
+
+
+// DELETE invite
+export const deleteCollaboratorById = async (id) => {
+  try {
+    const result = await Collaborator.findByIdAndDelete(id);
+    if (!result) {
+      throw new Error('Collaborator not found');
+    }
+    return result;
+  } catch (error) {
+    throw new Error(`Error deleting collaborator: ${error.message}`);
+  }
+};
+
+// UPDATE invite (admin use)
 export const updateCollaborator = async (id, payload) => {
   try {
     const collaborator = await Collaborator.findById(id);
@@ -54,18 +158,5 @@ export const updateCollaborator = async (id, payload) => {
     return updatedCollaborator;
   } catch (error) {
     throw new Error(`Error updating collaborator: ${error.message}`);
-  }
-};
-
-// DELETE a collaborator
-export const deleteCollaboratorById = async (id) => {
-  try {
-    const result = await Collaborator.findByIdAndDelete(id);
-    if (!result) {
-      throw new Error('Collaborator not found');
-    }
-    return result;
-  } catch (error) {
-    throw new Error(`Error deleting collaborator: ${error.message}`);
   }
 };

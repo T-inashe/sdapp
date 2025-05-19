@@ -11,6 +11,7 @@ import IndividualChatPage from './pages/IndividualChat';
 import MessagesPage from './pages/Messages';
 import AllMessagesPage from './pages/AllMessages';
 import Collaborators from './components/Collaborators';
+import ViewCollaborators from './components/ViewCollaborators'
 import ResearchCollabLanding from './pages/ResearchCollabLanding';
 import './App.css';
 import ApplyPage from './components/BeCollaborator'
@@ -22,6 +23,7 @@ import ProjectDetail from './components/ProjectDetails';
 import CollaboratorDashboard from './components/dashboard/CollaboratorDashboard';
 import ReviewerDashboard from './components/dashboard/ReviewerDashboard';
 import AdminDashboard from './components/dashboard/AdminDashboard';
+import MyDashboard from './components/dashboard/MyDashboard';
 
 // Protected route component
 // const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -45,9 +47,11 @@ const App: React.FC = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/collaboratordashboard" element={<CollaboratorDashboard />} />
           <Route path="/admindashboard" element={<AdminDashboard />} />
+          <Route path="/mydashboard" element={<MyDashboard />} />
           <Route path="/reviewerdashboard" element={<ReviewerDashboard />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/Collaborators/:id" element={<Collaborators />} />
+          <Route path="/viewcollaborators" element={<Collaborators />} />
           <Route path="/apply/:id" element={<ApplyPage />} />
           <Route path="/chat/:id" element={<ChatPage />} />
           <Route path="/individualchat/:id" element={<IndividualChatPage />} />

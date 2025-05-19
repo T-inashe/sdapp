@@ -8,9 +8,11 @@ import './Dashboard.css';
 import Calendar from './Calendar'; 
 import MessagePage from '../../pages/Messages';
 import config from '../../config';
-/* Add to imports at the top */
 import ResearchFundingDashboard from './ResearchFundingDashboard';
 import { FiDollarSign } from 'react-icons/fi';
+import MyDashboard from './MyDashboard';
+import MilestoneDashboard from './MilestoneDashboard';
+import ProjectCollaboratorsList from '../ViewCollaborators';
 
  export interface Project {
   _id: number;
@@ -89,6 +91,9 @@ const CollaboratorDashboard: React.FC = () => {
   const [externalOpportunities, setExternalOpportunities] = useState<ExternalOpportunities[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [projectName, setProjectName] = useState('');
+
 
   const fetchOpportunities = async () => {
     try {
@@ -343,12 +348,19 @@ const CollaboratorDashboard: React.FC = () => {
           <Badge bg="info">Collaborator</Badge>
         </div>
         <Nav className="flex-column sidebar-nav">
-          <Nav.Link
+                    <Nav.Link
             className={activeTab === 'overview' ? 'active' : ''}
             onClick={() => setActiveTab('overview')}
           >
             <FiFileText className="me-2" /> Overview
           </Nav.Link>
+<Nav.Link
+  className={activeTab === 'mydashboard' ? 'active' : ''}
+  onClick={() => setActiveTab('mydashboard')}
+>
+  <FiFileText className="me-2" /> My Dashboard
+</Nav.Link>
+
           <Nav.Link
             className={activeTab === 'opportunities' ? 'active' : ''}
             onClick={() => setActiveTab('opportunities')}
@@ -361,12 +373,25 @@ const CollaboratorDashboard: React.FC = () => {
           >
             <FiBriefcase className="me-2" /> My Projects
           </Nav.Link>
-           <Nav.Link
-            className={activeTab === 'collaborators' ? 'active' : ''}
-            onClick={() => setActiveTab('collaborators')}
-          >
-            <FiUsers className="me-2" /> Collaborators
-          </Nav.Link>
+              {opportunities.map((opportunity) => (
+        <Nav.Link
+          key={opportunity.id} // Always add a unique key when mapping
+          className={activeTab === 'collaborators' ? 'active' : ''}
+          onClick={() => {
+            setActiveTab('collaborators');
+            setSelectedProjectId(opportunity.id); 
+            setProjectName(opportunity.title);
+          }}
+        >
+          <FiUsers className="me-2" /> Collaborators
+        </Nav.Link>
+      ))}
+          <Nav.Link
+  className={activeTab === 'milestonedashboard' ? 'active' : ''}
+  onClick={() => setActiveTab('milestonedashboard')}
+>
+  <FiFileText className="me-2" /> Milestones
+</Nav.Link>
           <Nav.Link
             className={activeTab === 'messages' ? 'active' : ''}
             onClick={() => setActiveTab('messages')}
@@ -687,6 +712,7 @@ const CollaboratorDashboard: React.FC = () => {
             <Card.Body>
               <h4>Find Researchers</h4>
               <Form.Control
+                id="findResearchers"
                 type="text"
                 placeholder="Search by name, department, research area, or research experience"
                 value={searchText}
@@ -837,8 +863,13 @@ const CollaboratorDashboard: React.FC = () => {
             </Row>
           </Container>
         )}
+        {activeTab === 'collaborators' && selectedProjectId && (
+          <ProjectCollaboratorsList  projectId={selectedProjectId} projectName={projectName}/>
+        )}
 
         {activeTab === 'messages' && <MessagePage />}
+        {activeTab === 'mydashboard' && <MyDashboard />}
+        {activeTab === 'milestonedashboard' && <MilestoneDashboard />}
         {activeTab === 'calendar' && (
           <Container fluid>
             <Row className="mb-4">

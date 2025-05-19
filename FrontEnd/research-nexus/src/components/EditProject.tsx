@@ -141,36 +141,34 @@ function EditProject(): JSX.Element {
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    
-    if (form.checkValidity() === false) {
-      e.stopPropagation();
-      setValidated(true);
-      return;
-    }
+  e.preventDefault();
 
-    setIsSubmitting(true);
-    setError('');
+  const form = e.currentTarget;
+  if (!form.checkValidity()) {
+    e.stopPropagation();
+    setValidated(true);
+    return;
+  }
 
-    console.log(formData)
-    try {
-      const response = await axios.put(`${config.API_URL}/api/createproject/projects/${id}`, formData, {
-        withCredentials: true
-      });
-      console.log(response.data)
-      if (response.data) {
-        navigate(`/projects/${id}`);
-      } else {
-        setError(response.data || 'Failed to update project');
-      }
-    } catch (err) {
-      setError('Server error. Please try again later.');
-      console.error('Project update error:', err);
-    } finally {
-      setIsSubmitting(false);
+  setIsSubmitting(true);
+  setError('');
+
+  try {
+    const response = await axios.put(`${config.API_URL}/api/createproject/projects/${id}`, formData, {
+      withCredentials: true,
+    });
+
+    if (response.data?.success) {
+      navigate(`/projects/${id}`);
+    } else {
+      setError(response.data?.message || 'Failed to update project');
     }
-  };
+  } catch (err: any) {
+    setError(err?.response?.data?.message || 'Server error. Please try again later.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   if (isLoading) {
     return (
@@ -194,7 +192,7 @@ function EditProject(): JSX.Element {
               <h2 className="mb-0">Edit Research Project</h2>
             </Card.Header>
             <Card.Body className="p-4">
-              {error && <div className="alert alert-danger">{error}</div>}
+              {error && <div className="alert alert-danger" role="alert" data-testid="update-error">{error}</div>}
               
               <Form noValidate validated={validated} onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">

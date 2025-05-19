@@ -45,6 +45,7 @@ function CreateProject() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
 
   const research_areas: string[] = [
@@ -78,7 +79,15 @@ function CreateProject() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-  
+
+    // Date validation
+    if (new Date(formData.end_date) < new Date(formData.start_date)) {
+      setError('End date cannot be earlier than start date');
+      return;
+    }
+
+    console.log('file state on submit:', file);
+    console.log('form validity:', form.checkValidity());
     if (form.checkValidity() === false || !file) {
       e.stopPropagation();
       setValidated(true);
@@ -91,13 +100,10 @@ function CreateProject() {
     try {
       const data = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
-        data.append(key, value as string); // cast needed for types
+        data.append(key, value as string);
       });
       data.append('file', file); 
   
-      for (const [key, value] of data.entries()) {
-        console.log(`${key}:`, value);
-      }
       const response = await axios.post(`${config.API_URL}/api/createproject/projects`, data, {
         withCredentials: true,
         headers: {
@@ -105,17 +111,25 @@ function CreateProject() {
         }
       });
   
-      console.log('Project created:', response.data);
-      navigate('/collaboratordashboard');
+      // Handle both success and error responses from API
+      if (response.data.success) {
+        navigate('/collaboratordashboard');
+      } else {
+        setError(response.data.message || 'An error occurred while creating the project');
+      }
     } catch (err) {
-      setError('Server error. Please try again later.');
+      // Handle axios errors
+      if (axios.isAxiosError(err) && err.response) {
+        setError(err.response.data.message || 'An error occurred while submitting the form');
+      } else {
+        setError('An unexpected error occurred');
+      }
       console.error('Project creation error:', err);
     } finally {
       setIsSubmitting(false);
     }
   };
   
-
   const handleCancel = () => {
     const isConfirmed = window.confirm('Are you sure you want to discard the changes?');
     if (isConfirmed) {
@@ -202,8 +216,9 @@ function CreateProject() {
                   </Form.Control.Feedback>
                 </Form.Group>
                 <Form.Group className="mb-3">
-                  <Form.Label>Upload Project Image/File *</Form.Label>
-                  <Form.Control 
+                  <Form.Label htmlFor="projectImage">Upload Project Image/File *</Form.Label>
+                  <Form.Control
+                    id="projectImage" 
                     type="file" 
                     accept="image/*,application/pdf" 
                     onChange={(e) => {
@@ -218,6 +233,7 @@ function CreateProject() {
                 <Form.Group className="mb-3">
                   <Form.Label htmlFor="researchArea">Research Area *</Form.Label>
                   <Form.Select
+                    id="researchArea"
                     name="research_area"
                     value={formData.research_area}
                     onChange={handleChange}

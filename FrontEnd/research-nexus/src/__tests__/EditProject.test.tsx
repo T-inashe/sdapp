@@ -15,20 +15,23 @@ jest.mock('react-router-dom', () => ({
 }));
 
 const sampleProject = {
-  success: true,
-  project: {
-    title: 'Edited Project',
-    description: 'Updated description',
-    research_goals: 'Updated goals',
-    research_area: 'Machine Learning',
-    start_date: '2025-01-01',
-    end_date: '2025-12-31',
-    funding_available: true,
-    funding_amount: '10000',
-    collaborators_needed: true,
-    collaborator_roles: 'ML Engineer',
-    institution: 'Tech Uni',
-    contact_email: 'edit@tech.edu',
+  _id: '123',
+  title: 'Edited Project',
+  description: 'Updated description',
+  research_goals: 'Updated goals',
+  research_area: 'Machine Learning',
+  start_date: '2025-01-01',
+  end_date: '2025-12-31',
+  funding_available: true,
+  funding_amount: '10000',
+  collaborators_needed: true,
+  collaborator_roles: 'ML Engineer',
+  institution: 'Tech Uni',
+  contact_email: 'edit@tech.edu',
+  file: {
+    data: 'base64-string',
+    contentType: 'application/pdf',
+    originalName: 'proposal.pdf',
   },
 };
 
@@ -48,13 +51,13 @@ describe('EditProject', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/Loading project data.../i)).toBeInTheDocument();
+    expect(screen.getByText(/Loading project data/i)).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByDisplayValue(/Edited Project/i)).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Edited Project')).toBeInTheDocument();
     });
   });
 
-  test('loads form fields with project data', async () => {
+  test('loads form fields with project data including file link', async () => {
     mockedAxios.get.mockResolvedValueOnce({ data: sampleProject });
 
     render(
@@ -72,10 +75,34 @@ describe('EditProject', () => {
       expect(screen.getByDisplayValue('10000')).toBeInTheDocument();
       expect(screen.getByDisplayValue('ML Engineer')).toBeInTheDocument();
       expect(screen.getByDisplayValue('edit@tech.edu')).toBeInTheDocument();
+      expect(screen.getByText(/Download proposal.pdf/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Upload Project Image\/File/i)).toBeInTheDocument();
     });
   });
 
-  test('submits updated form and navigates', async () => {
+  test('toggles conditional fields based on checkbox input', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: { ...sampleProject, funding_available: false, collaborators_needed: false } });
+
+    render(
+      <MemoryRouter initialEntries={['/projects/123/edit']}>
+        <Routes>
+          <Route path="/projects/:id/edit" element={<EditProject />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Funding Available/i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByLabelText(/Funding Available/i));
+    expect(screen.getByLabelText(/Funding Amount/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText(/Seeking Collaborators/i));
+    expect(screen.getByLabelText(/Collaborator Roles Needed/i)).toBeInTheDocument();
+  });
+
+  test('submits updated form and navigates on success', async () => {
     mockedAxios.get.mockResolvedValueOnce({ data: sampleProject });
     mockedAxios.put.mockResolvedValueOnce({ data: { success: true } });
 
@@ -90,6 +117,16 @@ describe('EditProject', () => {
     await waitFor(() => screen.getByDisplayValue('Edited Project'));
 
     fireEvent.change(screen.getByLabelText(/Project Title/i), { target: { value: 'Final Project Title' } });
+    fireEvent.change(screen.getByLabelText(/Description/i), { target: { value: 'Final description' } });
+    fireEvent.change(screen.getByLabelText(/Research Goals/i), { target: { value: 'Final goals' } });
+    fireEvent.change(screen.getByLabelText(/Research Area/i), { target: { value: 'Machine Learning' } });
+    fireEvent.change(screen.getByLabelText(/Start Date/i), { target: { value: '2025-01-01' } });
+    fireEvent.change(screen.getByLabelText(/End Date/i), { target: { value: '2025-12-31' } });
+    fireEvent.change(screen.getByLabelText(/Funding Amount/i), { target: { value: '15000' } });
+    fireEvent.change(screen.getByLabelText(/Collaborator Roles Needed/i), { target: { value: 'Data Analyst' } });
+    fireEvent.change(screen.getByLabelText(/Institution/i), { target: { value: 'Updated Uni' } });
+    fireEvent.change(screen.getByLabelText(/Contact Email/i), { target: { value: 'updated@uni.edu' } });
+
     fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
 
     await waitFor(() => {
@@ -98,24 +135,35 @@ describe('EditProject', () => {
     });
   });
 
-  test('displays error if project update fails', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ data: sampleProject });
-    mockedAxios.put.mockResolvedValueOnce({ data: { success: false, message: 'Update failed' } });
+  test('displays error if update fails', async () => {
+  mockedAxios.get.mockResolvedValueOnce({ data: sampleProject });
 
-    render(
-      <MemoryRouter initialEntries={['/projects/123/edit']}>
-        <Routes>
-          <Route path="/projects/:id/edit" element={<EditProject />} />
-        </Routes>
-      </MemoryRouter>
-    );
+  mockedAxios.put.mockRejectedValueOnce({
+    response: {
+      data: {
+        message: 'Update failed',
+      },
+    },
+  });
 
-    await waitFor(() => screen.getByDisplayValue('Edited Project'));
+  render(
+    <MemoryRouter initialEntries={['/projects/123/edit']}>
+      <Routes>
+        <Route path="/projects/:id/edit" element={<EditProject />} />
+      </Routes>
+    </MemoryRouter>
+  );
 
-    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
+  await waitFor(() => {
+    expect(screen.getByDisplayValue('Edited Project')).toBeInTheDocument();
+  });
 
-    await waitFor(() => {
-      expect(screen.getByText(/Update failed/i)).toBeInTheDocument();
-    });
-  }, 15000);
+  fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
+
+  await waitFor(() => {
+    const alert = screen.getByTestId('update-error');
+    expect(alert).toHaveTextContent(/update failed/i);
+  }, { timeout: 3000 });
+});
+
 });

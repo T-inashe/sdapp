@@ -317,6 +317,18 @@ const handleAddFunding = async () => {
           end_date: newFunding.endDate || fund.endDate,
         };
 
+        const putfund = {
+          funder: newFunding.funder,
+          amount: newAwarded,
+          projectId: fund.projectId,
+          endDate: newFunding.endDate || fund.endDate,
+        };
+        
+        console.log(putfund)
+        await axios.post(`${config.API_URL}/api/funding`, putfund, {
+          withCredentials: true
+        });
+
         console.log(putPayload)
         await axios.put(
         `${config.API_URL}/api/createproject/projects/${fund.projectId}`,

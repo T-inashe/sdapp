@@ -92,6 +92,31 @@ export const getCollaboratorsByProjectId = async (projectId) => {
   }
 };
 
+export const getCollaboratorsByCreator = async (creatorId) => {
+  try {
+    const projects = await ResearchProject.find({ creator: creatorId })
+      .populate('collaborators');
+
+    if (!projects || projects.length === 0) {
+      return [];
+    }
+
+    const allCollaborators = projects.flatMap(project => project.collaborators);
+
+    const uniqueCollaboratorsMap = new Map();
+    allCollaborators.forEach(user => {
+      uniqueCollaboratorsMap.set(user._id.toString(), user);
+    });
+
+    const uniqueCollaborators = Array.from(uniqueCollaboratorsMap.values());
+
+    return uniqueCollaborators;
+  } catch (error) {
+    throw new Error(`Error fetching collaborators for creator ${creatorId}: ${error.message}`);
+  }
+};
+
+
 
 // UPDATE a research project
 export const updateResearchProject = async (id, payload) => {

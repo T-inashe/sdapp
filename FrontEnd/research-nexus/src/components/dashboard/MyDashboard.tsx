@@ -56,7 +56,7 @@ interface Milestone {
   description: string;
   dueDate: string;
   status: 'completed' | 'in progress' | 'not started';
-  assignedTo: string;
+  assignedTo: {fname:string, lname:string}
   createdAt: string;
 }
 // Define funding types
@@ -160,7 +160,7 @@ const fetchCollaborators = async () => {
   try {
     // Try to fetch from API first
     try {
-      const response = await axios.get(`${config.API_URL}/api/users`, {
+      const response = await axios.get(`${config.API_URL}/api/createproject/collaborators/creator/${user?.id}`, {
         withCredentials: true
       });
       
@@ -175,45 +175,6 @@ const fetchCollaborators = async () => {
     } catch (apiError) {
       console.log('API endpoint not available, using mock data instead');
     }
-    
-    // Mock data as fallback
-    const mockCollaborators: Collaborator[] = [
-      {
-        _id: '1',
-        fname: 'Sarah',
-        lname: 'Johnson',
-        academicRole: 'Professor',
-        department: 'Computer Science',
-        researcharea: 'Machine Learning'
-      },
-      {
-        _id: '2',
-        fname: 'Michael',
-        lname: 'Chen',
-        academicRole: 'Associate Professor',
-        department: 'Data Science',
-        researcharea: 'Neural Networks'
-      },
-      {
-        _id: '3',
-        fname: 'Priya',
-        lname: 'Patel',
-        academicRole: 'Post-doctoral Researcher',
-        department: 'Artificial Intelligence',
-        researcharea: 'Natural Language Processing'
-      },
-      {
-        _id: '4',
-        fname: 'James',
-        lname: 'Wilson',
-        academicRole: 'PhD Student',
-        department: 'Computer Science',
-        researcharea: 'Computer Vision'
-      }
-    ];
-    
-    setCollaborators(mockCollaborators);
-    setFilteredCollaborators(mockCollaborators.slice(0, 3)); // Show top 3 by default
   } catch (err) {
     console.error('Error fetching collaborators:', err);
     setCollaborators([]);
@@ -237,43 +198,6 @@ const fetchCollaborators = async () => {
         }
       } catch (error) {
         console.error('Error fetching funding sources:', error);
-        // Use mock data if API isn't available
-        const mockFunding: FundingSource[] = [
-          {
-            _id: '1',
-            name: 'NSF Research Grant',
-            amount: 250000,
-            currency: 'USD',
-            status: 'approved',
-            startDate: '2025-01-01',
-            endDate: '2026-12-31',
-            agency: 'National Science Foundation',
-            description: 'Machine Learning Research Project'
-          },
-          {
-            _id: '2',
-            name: 'University Seed Grant',
-            amount: 50000,
-            currency: 'USD',
-            status: 'disbursed',
-            startDate: '2024-09-01',
-            endDate: '2025-08-31',
-            agency: 'University Research Office',
-            description: 'Data Analysis Infrastructure'
-          },
-          {
-            _id: '3',
-            name: 'Industry Partnership',
-            amount: 100000,
-            currency: 'USD',
-            status: 'pending',
-            startDate: '2025-06-01',
-            endDate: '2026-05-31',
-            agency: 'Tech Company Inc.',
-            description: 'Applied AI Research Collaboration'
-          }
-        ];
-        setFundingSources(mockFunding);
       }
 
     try {
@@ -352,53 +276,18 @@ const fetchMilestones = async (projectId: number | string) => {
 
     // Try to fetch milestones from API
     try {
-      const response = await axios.get(`${config.API_URL}/api/milestones?projectId=${projectId}`, {
+      const response = await axios.get(`${config.API_URL}/api/milestone/user/${user?.id}`, {
         withCredentials: true
       });
       
       if (response.data && Array.isArray(response.data)) {
         setMilestones(response.data);
         setIsLoading(false);
-        return; // Exit early if we successfully got data
+        return; 
       }
     } catch (apiError) {
       console.log(`Using mock milestone data for project ${projectId} - API endpoint may not be ready`);
     }
-    
-    // If API call fails or returns invalid data, use mock data as fallback
-    const mockMilestones = [
-      {
-        _id: '1',
-        projectId: projectId,
-        title: 'Literature Review',
-        description: 'Complete comprehensive literature review',
-        dueDate: '2025-06-15',
-        status: 'completed' as const,
-        assignedTo: user?.name || 'Team Member',
-        createdAt: '2025-05-01'
-      },
-      {
-        _id: '2',
-        projectId: projectId,
-        title: 'Data Collection',
-        description: 'Gather and organize research data',
-        dueDate: '2025-07-30',
-        status: 'in progress' as const,
-        assignedTo: user?.name || 'Team Member',
-        createdAt: '2025-05-01'
-      },
-      {
-        _id: '3',
-        projectId: projectId,
-        title: 'Analysis',
-        description: 'Analyze collected data',
-        dueDate: '2025-08-15',
-        status: 'not started' as const,
-        assignedTo: user?.name || 'Team Member',
-        createdAt: '2025-05-01'
-      }
-    ];
-    setMilestones(mockMilestones);
   } catch (err) {
     console.error('Unexpected error in fetchMilestones:', err);
     setMilestones([]);
@@ -595,7 +484,7 @@ const renderMilestonesWidget = (widget: WidgetConfig) => {
                 <p className="text-muted small mb-1">{milestone.description}</p>
                 <div className="d-flex justify-content-between align-items-center">
                   <small>Due: {formatDate(milestone.dueDate)}</small>
-                  <small>Assigned to: {milestone.assignedTo}</small>
+                  <small>Assigned to: {milestone.assignedTo.fname} {milestone.assignedTo.lname}</small>
                 </div>
               </div>
             ))}
@@ -761,9 +650,6 @@ const renderCollaboratorsWidget = (widget: WidgetConfig) => {
           </>
         )}
       </Card.Body>
-      <Card.Footer className="text-center">
-        <Link to="/collaborators" className="text-primary text-decoration-none">Find Collaborators</Link>
-      </Card.Footer>
     </Card>
   );
 };

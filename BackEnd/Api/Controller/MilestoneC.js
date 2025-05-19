@@ -1,4 +1,8 @@
 import Milestone from '../Models/Milestone.js';
+import mongoose from 'mongoose';
+import ResearchProject from '../Models/Project.js';
+
+
 
 // Create a new milestone
 export const createMilestone = async (payload) => {
@@ -28,6 +32,28 @@ export const getMilestoneById = async (id) => {
   } catch (error) {
     console.error('Error fetching milestone by ID:', error);
     throw new Error('Failed to fetch milestone by ID');
+  }
+};
+
+export const getMilestonesByUser = async (userId) => {
+  try {
+    const milestone = await Milestone.find()
+      .populate({
+        path: 'projectId',
+        match: { creator: new mongoose.Types.ObjectId(userId) },
+        select: 'title creator', 
+      }).populate({
+        path: 'assignedTo',
+        select: 'fname lname', 
+      });
+      
+      
+    const filteredMilestone = milestone.filter(f => f.projectId !== null);
+
+    return filteredMilestone;
+  } catch (error) {
+    console.error('Error milestone fundings by user:', error);
+    throw new Error('Failed to fetch milestone for user');
   }
 };
 

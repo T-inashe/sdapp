@@ -3,6 +3,7 @@ import {
   createFunder,
   getAllFunders,
   getFunderById,
+  getFundingsByUser,
   updateFunder,
   deleteFunderById,
   getFundByProjectId,
@@ -47,6 +48,17 @@ router.get('/project/:projectId', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch fund for project' });
   }
 });
+
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const fundings = await getFundingsByUser(userId);
+    res.json(fundings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Create a new funder
 router.post('/', async (req, res) => {
   try {

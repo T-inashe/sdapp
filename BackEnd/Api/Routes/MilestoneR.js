@@ -5,6 +5,7 @@ import {
   createMilestone,
   getMilestonesByProject,
   getMilestoneById,
+  getMilestonesByUser,
   updateMilestone,
   deleteMilestoneById,
 } from '../Controller/MilestoneC.js';
@@ -38,6 +39,16 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ message: 'Error fetching milestone', error: error.message });
   }
 });
+
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const milestone = await getMilestonesByUser(userId);
+    res.json(milestone);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+})
 
 // Create a new milestone
 router.post('/', async (req, res) => {

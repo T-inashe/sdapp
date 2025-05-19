@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const funderSchema = new mongoose.Schema({
   projectId: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: 'Project',
+          ref: 'ResearchProject',
           required: true,
       }, 
   funder: {

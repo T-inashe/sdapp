@@ -15,8 +15,9 @@ const milestoneSchema = new mongoose.Schema(
       default: "not started",
     },
     assignedTo: {
-      type: String,
-      required:true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
     dueDate: {
     type: Date,
@@ -24,7 +25,7 @@ const milestoneSchema = new mongoose.Schema(
   },
     projectId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Project",
+      ref: "ResearchProject",
       required: true,
     },
   },

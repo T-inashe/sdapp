@@ -1,4 +1,7 @@
 import Funder from '../Models/Funder.js';
+import mongoose from 'mongoose';
+import ResearchProject from '../Models/Project.js';
+
 
 // Create a new funder
 export const createFunder = async (payload) => {
@@ -40,6 +43,23 @@ export const getFunderById = async (id) => {
   }
 };
 
+export const getFundingsByUser = async (userId) => {
+  try {
+    const fundings = await Funder.find()
+      .populate({
+        path: 'projectId',
+        match: { creator: new mongoose.Types.ObjectId(userId) },
+        select: 'title creator', 
+      });
+      
+    const filteredFundings = fundings.filter(f => f.projectId !== null);
+
+    return filteredFundings;
+  } catch (error) {
+    console.error('Error fetching fundings by user:', error);
+    throw new Error('Failed to fetch fundings for user');
+  }
+};
 // Update a funder by ID
 export const updateFunder = async (id, payload) => {
   try {

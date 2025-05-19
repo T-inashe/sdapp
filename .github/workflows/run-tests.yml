@@ -2,9 +2,9 @@ name: Run Frontend Tests
 
 on:
   push:
-    branches: [latestapp]
+    branches: [feature/Musa]
   pull_request:
-    branches: [latestapp]
+    branches: [feature/Musa]
 
 jobs:
   test:

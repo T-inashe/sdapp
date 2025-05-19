@@ -10,7 +10,6 @@ import MessagePage from '../../pages/Messages';
 import config from '../../config';
 import ResearchFundingDashboard from './ResearchFundingDashboard';
 import { FiDollarSign } from 'react-icons/fi';
-import MyDashboard from './MyDashboard';
 import MilestoneDashboard from './MilestoneDashboard';
 import ProjectCollaboratorsList from '../ViewCollaborators';
 
@@ -423,7 +422,7 @@ const CollaboratorDashboard: React.FC = () => {
           </Nav.Link>
         </Nav>
         <div className="mt-auto p-3">
-          <Button variant="outline-danger" className="w-100" onClick={handleLogout}>
+          <Button variant="outline-danger" className="w-100" onClick={handleLogout} data-testid="logout-btn">
             <FiLogOut className="me-2" /> Logout
           </Button>
         </div>
@@ -435,9 +434,9 @@ const CollaboratorDashboard: React.FC = () => {
           <h2>{getDashboardTitle()}</h2>
           <div>
             <Link to="/projects/create">
-              <Button variant="primary" className="me-2">New Project</Button>
+              <Button variant="primary" className="me-2" data-testid="new-project-btn">New Project</Button>
             </Link>
-            <Button variant="outline-primary">Find Collaborators</Button>
+            <Button variant="outline-primary" data-testid="find-collaborators-btn-2">Find Collaborators</Button>
           </div>
         </div>
 
@@ -480,7 +479,7 @@ const CollaboratorDashboard: React.FC = () => {
                         Update your skills profile to get better research opportunity matches.
                       </p>
                       <Link to="/profile/skills">
-                        <Button variant="primary" size="lg" className="mt-3">
+                        <Button variant="primary" size="lg" className="mt-3" data-testid="open-update-skills-btn">
                           Update Skills Profile
                         </Button>
                       </Link>
@@ -527,6 +526,7 @@ const CollaboratorDashboard: React.FC = () => {
                           size="sm" 
                           className="me-2"
                           onClick={() => navigate(`/collaborators/${opportunity.id}`)}
+                          data-testid="invite-collaborators-btn"
                         >
                           Invite Collaborators
                         </Button>
@@ -536,7 +536,7 @@ const CollaboratorDashboard: React.FC = () => {
                   ))
                 )}
                 <div className="text-center mt-3">
-                  <Button variant="outline-primary" onClick={() => setActiveTab('opportunities')}>
+                  <Button variant="outline-primary" onClick={() => setActiveTab('opportunities')} data-test-id="open-view-all-opportunities-btn">
                     View All Opportunities
                   </Button>
                 </div>
@@ -550,7 +550,7 @@ const CollaboratorDashboard: React.FC = () => {
                       <p className="text-muted">
                         You're not currently collaborating on any research projects.
                       </p>
-                      <Button variant="primary" size="lg" className="mt-3" onClick={() => setActiveTab('opportunities')}>
+                      <Button variant="primary" size="lg" className="mt-3" onClick={() => setActiveTab('opportunities')} data-testid="open-find-opportunities-btn">
                         Find Opportunities
                       </Button>
                     </Card.Body>
@@ -573,7 +573,10 @@ const CollaboratorDashboard: React.FC = () => {
                                 ? `${project.description.substring(0, 150)}...` 
                                 : project.description}
                             </p>
-                            <a href={`${config.API_URL}/api/createproject/${project._id}/download/`} download>
+                            <a href={`${config.API_URL}/api/createproject/${project._id}/download/`} 
+                              download
+                              data-testid={`download-link-${project.file.originalName}`}
+                               >
                               Download {project.file.originalName}
                               </a>
                             <div className="project-meta">
@@ -594,12 +597,12 @@ const CollaboratorDashboard: React.FC = () => {
                         </div>
                         <div className="mt-3">
                           <Link to={`/projects/${project._id}`}>
-                            <Button variant="outline-primary" size="sm" className="me-2">
+                            <Button variant="outline-primary" size="sm" className="me-2" data-testid="open-view-project-btn">
                               View Project
                             </Button>
                           </Link>
                           <Link to={`/projects/${project._id}/edit`}>
-                            <Button variant="outline-secondary" size="sm">
+                            <Button variant="outline-secondary" size="sm" data-testid="edit-btn">
                             <i className="bi bi-pencil-square me-1"></i>
                               Edit
                             </Button>
@@ -635,7 +638,7 @@ const CollaboratorDashboard: React.FC = () => {
     </div>
     <div className="text-center p-3">
       <Link to="/notifications" className="text-decoration-none">
-        <Button variant="link" className="text-decoration-none">View All Notifications</Button>
+        <Button variant="link" className="text-decoration-none" data-testid="view-all-notifications-btn">View All Notifications</Button>
       </Link>
     </div>
   </Card.Body>
@@ -667,7 +670,7 @@ const CollaboratorDashboard: React.FC = () => {
                       
                       <div className="text-center mt-3">
                         <Link to="/profile/skills">
-                          <Button variant="outline-primary" size="sm">
+                          <Button variant="outline-primary" size="sm" data-testid="update-skills-btn">
                             Update Skills Profile
                           </Button>
                         </Link>
@@ -766,6 +769,7 @@ const CollaboratorDashboard: React.FC = () => {
                           size="sm" 
                           className="me-2"
                           onClick={() => navigate(`/apply/${externalOpportunities.id}`)}
+                          data-testid="apply-now-btn"
                         >
                           Apply Now
                         </Button>
@@ -804,7 +808,7 @@ const CollaboratorDashboard: React.FC = () => {
                       <p className="text-muted">
                         You're not currently collaborating on any research projects.
                       </p>
-                      <Button variant="primary" size="lg" className="mt-3" onClick={() => setActiveTab('opportunities')}>
+                      <Button variant="primary" size="lg" className="mt-3" onClick={() => setActiveTab('opportunities')} data-testid="find-opportunities-btn">
                         Find Opportunities
                       </Button>
                     </Card.Body>
@@ -845,12 +849,12 @@ const CollaboratorDashboard: React.FC = () => {
                         </div>
                         <div className="mt-3">
                           <Link to={`/projects/${project._id}`}>
-                            <Button variant="outline-primary" size="sm" className="me-2">
+                            <Button variant="outline-primary" size="sm" className="me-2" data-testid="view-project-btn">
                               View Project
                             </Button>
                           </Link>
                           <Link to={`/projects/${project._id}/tasks`}>
-                            <Button variant="outline-secondary" size="sm">
+                            <Button variant="outline-secondary" size="sm" data-testid="my-tasks-btn">
                               My Tasks
                             </Button>
                           </Link>
@@ -868,7 +872,6 @@ const CollaboratorDashboard: React.FC = () => {
         )}
 
         {activeTab === 'messages' && <MessagePage />}
-        {activeTab === 'mydashboard' && <MyDashboard />}
         {activeTab === 'milestonedashboard' && <MilestoneDashboard />}
         {activeTab === 'calendar' && (
           <Container fluid>
@@ -919,7 +922,7 @@ const CollaboratorDashboard: React.FC = () => {
                   <Card.Body>
                     <h5>Project Timeline</h5>
                     <p className="text-muted">View your project timeline and manage deadlines effectively.</p>
-                    <Button variant="primary" onClick={() => setActiveTab('projects')}>
+                    <Button data-testid="manage-projects-btn" variant="primary" onClick={() => setActiveTab('projects')}>
                       Manage Projects
                     </Button>
                   </Card.Body>

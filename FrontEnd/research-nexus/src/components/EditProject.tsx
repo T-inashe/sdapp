@@ -21,9 +21,9 @@ interface ProjectFormData {
   institution: string;
   contact_email: string;
   file: {
-    data: "base64-string",
-    contentType: "application/pdf",
-    originalName: "proposal.pdf"
+    data: string;
+    contentType: string;
+    originalName: string;
   } 
 }
 
@@ -84,12 +84,13 @@ function EditProject(): JSX.Element {
         const response = await axios.get(`${config.API_URL}/api/createproject/projects/${id}`, {
           withCredentials: true
         });
-        if (response.data) {
+        if (response && response.data) {
           const projectData = response.data;
           
           // Convert from snake_case database fields to camelCase used in the form
           setFormData({
             _id:projectData._id,
+            creator: projectData.creator,
             title: projectData.title,
             description: projectData.description,
             research_goals: projectData.research_goals,
@@ -103,17 +104,16 @@ function EditProject(): JSX.Element {
             institution: projectData.institution || '',
             contact_email: projectData.contact_email,
             file: {
-              data: projectData.file.data,
-              contentType: projectData.file.contentType,
-              originalName: projectData.file.originalName
-            } 
-
+              data: projectData.file?.data || '',
+              contentType: projectData.file?.contentType || '',
+              originalName: projectData.file?.originalName || ''
+            }
           });
         } else {
-          setError(response.data.message || 'Failed to load project data');
+          setError('Failed to load project data');
         }
-      } catch (err) {
-        setError('Server error. Please try again later.');
+      } catch (err: any) {
+        setError(err?.message || 'Server error. Please try again later.');
         console.error('Project loading error:', err);
       } finally {
         setIsLoading(false);
@@ -125,50 +125,93 @@ function EditProject(): JSX.Element {
 
   // Format date from database (YYYY-MM-DD) to input field format
   const formatDateForInput = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date string:', dateString);
+        return '';
+      }
+      return date.toISOString().split('T')[0];
+    } catch (error) {
+      console.warn('Error formatting date:', dateString, error);
+      return '';
+    }
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
     
-    setFormData({
-      ...formData,
-      creator: user?.id || '',
-      [name]: type === 'checkbox' ? checked : value
-    });
+    if (type === 'file') {
+      const target = e.target as HTMLInputElement;
+      const selectedFile = target.files?.[0];
+      if (selectedFile) {
+        setFile(selectedFile);
+        // Convert file to base64 for form data
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          const base64Data = base64String.split(',')[1]; // Remove data:type;base64, prefix
+          
+          setFormData(prev => ({
+            ...prev,
+            file: {
+              data: base64Data,
+              contentType: selectedFile.type,
+              originalName: selectedFile.name
+            }
+          }));
+        };
+        reader.readAsDataURL(selectedFile);
+      }
+    } else {
+      setFormData({
+        ...formData,
+        creator: user?.id || '',
+        [name]: type === 'checkbox' ? checked : value
+      });
+    }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const form = e.currentTarget;
-  if (!form.checkValidity()) {
-    e.stopPropagation();
-    setValidated(true);
-    return;
-  }
-
-  setIsSubmitting(true);
-  setError('');
-
-  try {
-    const response = await axios.put(`${config.API_URL}/api/createproject/projects/${id}`, formData, {
-      withCredentials: true,
-    });
-
-    if (response.data?.success) {
-      navigate(`/projects/${id}`);
-    } else {
-      setError(response.data?.message || 'Failed to update project');
+    const form = e.currentTarget;
+    if (!form.checkValidity()) {
+      e.stopPropagation();
+      setValidated(true);
+      return;
     }
-  } catch (err: any) {
-    setError(err?.response?.data?.message || 'Server error. Please try again later.');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      // Prepare the form data for submission
+      const submitData = {
+        ...formData,
+        creator: user?.id || formData.creator
+      };
+
+      const response = await axios.put(`${config.API_URL}/api/createproject/projects/${id}`, submitData, {
+        withCredentials: true,
+      });
+
+      if (response.data?.success) {
+        navigate(`/projects/${id}`);
+      } else {
+        setError(response.data?.message || 'Failed to update project');
+      }
+    } catch (err: any) {
+      console.error('Update error:', err);
+      setError(err?.response?.data?.message || 'Server error. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -235,7 +278,7 @@ function EditProject(): JSX.Element {
                     as="textarea"
                     rows={3}
                     name="research_goals"
-                    value={formData. research_goals}
+                    value={formData.research_goals}
                     onChange={handleChange}
                     required
                     placeholder="List the key research goals and objectives"
@@ -244,171 +287,182 @@ function EditProject(): JSX.Element {
                     Please provide research goals.
                   </Form.Control.Feedback>
                 </Form.Group>   
-                  <Form.Label>Current File:</Form.Label>
-                  <a href={`${config.API_URL}/api/createproject/${formData._id}/download/`} download>
+                
+                {formData.file.originalName && (
+                  <div className="mb-3">
+                    <Form.Label>Current File:</Form.Label>
+                    <div>
+                      <a href={`${config.API_URL}/api/createproject/${formData._id}/download/`} download>
                         Download {formData.file.originalName}
-                        </a>  
+                      </a>  
+                    </div>
+                  </div>
+                )}
                           
-                 <Form.Group className="mb-3">
-                  <Form.Label>Upload Project Image/File *</Form.Label>
+                <Form.Group className="mb-3">
+                  <Form.Label htmlFor="projectFile">Upload Project Image/File *</Form.Label>
                   <Form.Control 
+                    id="projectFile"
                     type="file" 
+                    name="file"
                     accept="image/*,application/pdf" 
                     onChange={handleChange}
                   />
                 </Form.Group>
+                
                 <Form.Group className="mb-3">
                   <Form.Label htmlFor="researchArea">Research Area *</Form.Label>
                   <Form.Select
-name="research_area"
-value={formData.research_area}
-onChange={handleChange}
-required
->
-<option value="">Select Research Area</option>
-{research_areas.map((area, index) => (
-  <option key={index} value={area}>{area}</option>
-))}
-</Form.Select>
-<Form.Control.Feedback type="invalid">
-Please select a research area.
-</Form.Control.Feedback>
-</Form.Group>
+                    id="researchArea"
+                    name="research_area"
+                    value={formData.research_area}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select Research Area</option>
+                    {research_areas.map((area, index) => (
+                      <option key={index} value={area}>{area}</option>
+                    ))}
+                  </Form.Select>
+                  <Form.Control.Feedback type="invalid">
+                    Please select a research area.
+                  </Form.Control.Feedback>
+                </Form.Group>
 
-<Row>
-<Col md={6}>
-<Form.Group className="mb-3">
-  <Form.Label htmlFor="startDate">Start Date *</Form.Label>
-  <Form.Control
-    id="startDate"
-    type="date"
-    name="start_date"
-    value={formData.start_date}
-    onChange={handleChange}
-    required
-  />
-  <Form.Control.Feedback type="invalid">
-    Please select a start date.
-  </Form.Control.Feedback>
-</Form.Group>
-</Col>
-<Col md={6}>
-<Form.Group className="mb-3">
-  <Form.Label htmlFor="endDate">End Date *</Form.Label>
-  <Form.Control
-    id="endDate"
-    type="date"
-    name="end_date"
-    value={formData.end_date}
-    onChange={handleChange}
-    required
-  />
-  <Form.Control.Feedback type="invalid">
-    Please select an end date.
-  </Form.Control.Feedback>
-</Form.Group>
-</Col>
-</Row>
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label htmlFor="startDate">Start Date *</Form.Label>
+                      <Form.Control
+                        id="startDate"
+                        type="date"
+                        name="start_date"
+                        value={formData.start_date}
+                        onChange={handleChange}
+                        required
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        Please select a start date.
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label htmlFor="endDate">End Date *</Form.Label>
+                      <Form.Control
+                        id="endDate"
+                        type="date"
+                        name="end_date"
+                        value={formData.end_date}
+                        onChange={handleChange}
+                        required
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        Please select an end date.
+                      </Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-<Form.Group className="mb-3">
-<Form.Check
-id="fundungAvailable"
-type="checkbox"
-label="Funding Available"
-name="funding_available"
-checked={formData.funding_available}
-onChange={handleChange}
-/>
-</Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Check
+                    id="fundingAvailable"
+                    type="checkbox"
+                    label="Funding Available"
+                    name="funding_available"
+                    checked={formData.funding_available}
+                    onChange={handleChange}
+                  />
+                </Form.Group>
 
-{formData.funding_available && (
-<Form.Group className="mb-3">
-<Form.Label htmlFor="fundingAmount">Funding Amount ($)</Form.Label>
-<Form.Control
-  id="fundingAmount"
-  type="number"
-  name="funding_amount"
-  value={formData.funding_amount}
-  onChange={handleChange}
-  placeholder="Enter the available funding amount"
-/>
-</Form.Group>
-)}
+                {formData.funding_available && (
+                  <Form.Group className="mb-3">
+                    <Form.Label htmlFor="fundingAmount">Funding Amount ($)</Form.Label>
+                    <Form.Control
+                      id="fundingAmount"
+                      type="number"
+                      name="funding_amount"
+                      value={formData.funding_amount}
+                      onChange={handleChange}
+                      placeholder="Enter the available funding amount"
+                    />
+                  </Form.Group>
+                )}
 
-<Form.Group className="mb-3">
-<Form.Check
-id="collaboratorsNeeded"
-type="checkbox"
-label="Seeking Collaborators"
-name="collaborators_needed"
-checked={formData.collaborators_needed}
-onChange={handleChange}
-/>
-</Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Check
+                    id="collaboratorsNeeded"
+                    type="checkbox"
+                    label="Seeking Collaborators"
+                    name="collaborators_needed"
+                    checked={formData.collaborators_needed}
+                    onChange={handleChange}
+                  />
+                </Form.Group>
 
-{formData.collaborators_needed && (
-<Form.Group className="mb-3">
-<Form.Label htmlFor="collaboratorRoles">Collaborator Roles Needed</Form.Label>
-<Form.Control
-  id="collaboratorRoles"
-  as="textarea"
-  rows={2}
-  name="collaborator_roles"
-  value={formData.collaborator_roles}
-  onChange={handleChange}
-  placeholder="Describe the roles and expertise you're looking for"
-/>
-</Form.Group>
-)}
+                {formData.collaborators_needed && (
+                  <Form.Group className="mb-3">
+                    <Form.Label htmlFor="collaboratorRoles">Collaborator Roles Needed</Form.Label>
+                    <Form.Control
+                      id="collaboratorRoles"
+                      as="textarea"
+                      rows={2}
+                      name="collaborator_roles"
+                      value={formData.collaborator_roles}
+                      onChange={handleChange}
+                      placeholder="Describe the roles and expertise you're looking for"
+                    />
+                  </Form.Group>
+                )}
 
-<Form.Group className="mb-3">
-<Form.Label htmlFor="institution">Institution/University</Form.Label>
-<Form.Control
-id="institution"
-type="text"
-name="institution"
-value={formData.institution}
-onChange={handleChange}
-placeholder="Your affiliated institution"
-/>
-</Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label htmlFor="institution">Institution/University</Form.Label>
+                  <Form.Control
+                    id="institution"
+                    type="text"
+                    name="institution"
+                    value={formData.institution}
+                    onChange={handleChange}
+                    placeholder="Your affiliated institution"
+                  />
+                </Form.Group>
 
-<Form.Group className="mb-3">
-<Form.Label htmlFor="contactEmail">Contact Email</Form.Label>
-<Form.Control
-id="contactEmail"
-type="email"
-name="contact_email"
-value={formData.contact_email}
-onChange={handleChange}
-placeholder="Email for project inquiries"
-/>
-</Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label htmlFor="contactEmail">Contact Email</Form.Label>
+                  <Form.Control
+                    id="contactEmail"
+                    type="email"
+                    name="contact_email"
+                    value={formData.contact_email}
+                    onChange={handleChange}
+                    placeholder="Email for project inquiries"
+                  />
+                </Form.Group>
 
-<div className="d-grid gap-2 mt-4">
-<Button 
-type="submit" 
-variant="primary" 
-size="lg"
-disabled={isSubmitting}
->
-{isSubmitting ? 'Saving Changes...' : 'Save Changes'}
-</Button>
-<Button 
-variant="outline-secondary"
-size="lg"
-onClick={() => navigate(`/projects/${id}`)}
->
-Cancel
-</Button>
-</div>
-</Form>
-</Card.Body>
-</Card>
-</Col>
-</Row>
-</Container>
-);
+                <div className="d-grid gap-2 mt-4">
+                  <Button 
+                    type="submit" 
+                    variant="primary" 
+                    size="lg"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Saving Changes...' : 'Save Changes'}
+                  </Button>
+                  <Button 
+                    variant="outline-secondary"
+                    size="lg"
+                    onClick={() => navigate(`/projects/${id}`)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </Form>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+    </Container>
+  );
 }
 
 export default EditProject;

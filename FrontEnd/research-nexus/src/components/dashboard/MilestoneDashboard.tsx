@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext,useRef } from 'react';
 import { Container, Row, Col, Card, Button, Badge, Form, Table, Modal, ProgressBar, Alert } from 'react-bootstrap';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { FiPlus, FiEdit2, FiTrash2, FiCheck } from 'react-icons/fi';
@@ -7,13 +7,13 @@ import config from '../../config';
 import AuthContext from '../../context/AuthContext';
 
 interface Project {
-  _id: number;
+  _id: string;
   title: string;
 }
 
 interface Milestone {
   _id?: string;
-  projectId: number; // Changed from number | null to just number
+  projectId: string; 
   title: string;
   description: string;
   dueDate: string;
@@ -22,14 +22,27 @@ interface Milestone {
   createdAt?: string;
 }
 
+interface User {
+  _id: string;
+  fname: string;
+  lname: string;
+  avatar?: string;
+  academicRole: string;
+  department: string;
+  researchExperience: string;
+  researcharea: string;
+}
+
 const MilestoneDashboard: React.FC = () => {
   const { user } = useContext(AuthContext);
   const [projects, setProjects] = useState<Project[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [selectedProject, setSelectedProject] = useState<number | null>(null);
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
   const [currentMilestone, setCurrentMilestone] = useState<Milestone>({
-    projectId: 0, // Default value to satisfy the type
+    projectId: '', // Default value to satisfy the type
     title: '',
     description: '',
     dueDate: '',
@@ -39,6 +52,41 @@ const MilestoneDashboard: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [collaborators, setCollaborators] = useState<User[]>([]);
+  
+
+const handleExportPDF = async () => {
+  if (!reportRef.current) return;
+
+  setExporting(true);
+
+  try {
+    // @ts-ignore
+    const html2canvas = window.html2canvas;
+    // @ts-ignore
+    const { jsPDF } = window.jspdf;
+
+    const canvas = await html2canvas(reportRef.current, {
+      useCORS: true, // Support for external images/fonts
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.7);
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    // Calculate image dimensions to fit A4
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('report.pdf');
+  } catch (err) {
+    console.error('PDF export error:', err);
+  } finally {
+    setExporting(false);
+  }
+};
+
 
   // Colors for pie chart
   const COLORS = ['#dc3545', '#ffc107', '#198754'];
@@ -52,6 +100,13 @@ const MilestoneDashboard: React.FC = () => {
       fetchMilestones(selectedProject);
     }
   }, [selectedProject]);
+
+  useEffect(() => {
+  if (selectedProject) {
+    fetchCollaborators(selectedProject);
+  }
+}, [selectedProject]);
+
 
   const fetchProjects = async () => {
     setIsLoading(true);
@@ -73,75 +128,22 @@ const MilestoneDashboard: React.FC = () => {
     }
   };
 
-const fetchMilestones = async (projectId: number) => {
-  setIsLoading(true);
-  try {
-    // First check if the project ID is valid
-    if (!projectId) {
-      console.log('No project ID provided for fetching milestones');
-      setMilestones([]);
-      setIsLoading(false);
-      return;
-    }
-
-    // Try to fetch milestones from API
+  const fetchMilestones = async (projectId: string) => {
+    setIsLoading(true);
     try {
-      const response = await axios.get(`${config.API_URL}/api/milestones?projectId=${projectId}`, {
+      // In a real application, this would be a real API endpoint
+      const response = await axios.get(`${config.API_URL}/api/milestone/project/${projectId}`, {
         withCredentials: true
       });
-      
-      if (response.data && Array.isArray(response.data)) {
-        setMilestones(response.data);
-        setIsLoading(false);
-        return; // Exit early if we successfully got data
-      }
-    } catch (apiError) {
-      // Log a more informative message but not as an error
-      console.log(`Using mock milestone data for project ${projectId} - API endpoint may not be ready`);
+      setMilestones(response.data);
+     
+    } catch (err) {
+      console.error('Failed to fetch milestones:', err);
+    } finally {
+      setIsLoading(false);
     }
-    
-    // If API call fails or returns invalid data, use mock data as fallback
-    const mockMilestones = [
-      {
-        _id: '1',
-        projectId: projectId,
-        title: 'Literature Review',
-        description: 'Complete comprehensive literature review',
-        dueDate: '2025-06-15',
-        status: 'completed' as const,
-        assignedTo: user?.name || 'Team Member',
-        createdAt: '2025-05-01'
-      },
-      {
-        _id: '2',
-        projectId: projectId,
-        title: 'Data Collection',
-        description: 'Gather and organize research data',
-        dueDate: '2025-07-30',
-        status: 'in progress' as const,
-        assignedTo: user?.name || 'Team Member',
-        createdAt: '2025-05-01'
-      },
-      {
-        _id: '3',
-        projectId: projectId,
-        title: 'Analysis',
-        description: 'Analyze collected data',
-        dueDate: '2025-08-15',
-        status: 'not started' as const,
-        assignedTo: user?.name || 'Team Member',
-        createdAt: '2025-05-01'
-      }
-    ];
-    setMilestones(mockMilestones);
-  } catch (err) {
-    console.error('Unexpected error in fetchMilestones:', err);
-    // Set empty milestones array in case of unexpected errors
-    setMilestones([]);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setCurrentMilestone({
@@ -150,77 +152,50 @@ const fetchMilestones = async (projectId: number) => {
     });
   };
 
-  const saveMilestone = async () => {
-    try {
-      // Make sure we have a valid projectId
-      if (!selectedProject) {
-        setError('No project selected. Please select a project first.');
-        return;
-      }
-      
-      const milestoneToSave = {
-        ...currentMilestone,
-        projectId: selectedProject
-      };
-
-      if (isEditing && currentMilestone._id) {
-        // Update existing milestone
-        await axios.put(`${config.API_URL}/api/milestones/${currentMilestone._id}`, milestoneToSave, {
-          withCredentials: true
-        });
-        
-        // Update local state
-        setMilestones(milestones.map(m => 
-          m._id === currentMilestone._id ? milestoneToSave : m
-        ));
-      } else {
-        // Create new milestone
-        const response = await axios.post(`${config.API_URL}/api/milestones`, milestoneToSave, {
-          withCredentials: true
-        });
-        
-        // For demo, mock the API response
-        const newMilestone = {
-          ...milestoneToSave,
-          _id: response.data?._id || `temp-${Date.now()}`,
-          createdAt: new Date().toISOString()
-        };
-        
-        setMilestones([...milestones, newMilestone]);
-      }
-
-      // Close modal and reset form
-      setShowModal(false);
-      resetForm();
-    } catch (err) {
-      console.error('Failed to save milestone:', err);
-      
-      // Ensure we have a valid projectId before proceeding with the UI update
-      if (!selectedProject) {
-        setError('No project selected. Please select a project first.');
-        return;
-      }
-      
-      // For demo purposes, update the UI even if the API fails
-      if (isEditing && currentMilestone._id) {
-        setMilestones(milestones.map(m => 
-          m._id === currentMilestone._id ? {...currentMilestone, projectId: selectedProject} : m
-        ));
-      } else {
-        const newMilestone = {
-          ...currentMilestone,
-          _id: `temp-${Date.now()}`,
-          projectId: selectedProject,
-          createdAt: new Date().toISOString()
-        };
-        setMilestones([...milestones, newMilestone]);
-      }
-      
-      // Close modal and reset form
-      setShowModal(false);
-      resetForm();
+const saveMilestone = async () => {
+  try {
+    if (!selectedProject) {
+      setError('No project selected. Please select a project first.');
+      return;
     }
-  };
+
+    const milestoneToSave = {
+      ...currentMilestone,
+      projectId: selectedProject
+    };
+
+    if (isEditing && currentMilestone._id) {
+      // Update existing milestone
+      const response = await axios.put(
+        `${config.API_URL}/api/milestone/${currentMilestone._id}`,
+        milestoneToSave,
+        { withCredentials: true }
+      );
+
+      // Update local state with API response
+      setMilestones(milestones.map(m =>
+        m._id === currentMilestone._id ? response.data : m
+      ));
+    } else {
+      console.log(milestoneToSave)
+      // Create new milestone
+      const response = await axios.post(
+        `${config.API_URL}/api/milestone`,
+        milestoneToSave,
+        { withCredentials: true }
+      );
+
+      setMilestones([...milestones, response.data]);
+    }
+
+    setShowModal(false);
+    resetForm();
+  } catch (err) {
+    console.error('Failed to save milestone:', err);
+    setError('Failed to save milestone. Please try again.');
+  }
+};
+
 
   const editMilestone = (milestone: Milestone) => {
     setCurrentMilestone(milestone);
@@ -230,7 +205,7 @@ const fetchMilestones = async (projectId: number) => {
 
   const deleteMilestone = async (id: string) => {
     try {
-      await axios.delete(`${config.API_URL}/api/milestones/${id}`, {
+      await axios.delete(`${config.API_URL}/api/milestone/${id}`, {
         withCredentials: true
       });
       
@@ -238,15 +213,12 @@ const fetchMilestones = async (projectId: number) => {
       setMilestones(milestones.filter(m => m._id !== id));
     } catch (err) {
       console.error('Failed to delete milestone:', err);
-      
-      // For demo purposes, update the UI even if the API fails
-      setMilestones(milestones.filter(m => m._id !== id));
     }
   };
 
   const updateMilestoneStatus = async (id: string, newStatus: 'not started' | 'in progress' | 'completed') => {
     try {
-      await axios.patch(`${config.API_URL}/api/milestones/${id}/status`, { status: newStatus }, {
+      await axios.put(`${config.API_URL}/api/milestone/${id}`, { status: newStatus }, {
         withCredentials: true
       });
       
@@ -256,18 +228,12 @@ const fetchMilestones = async (projectId: number) => {
       ));
     } catch (err) {
       console.error('Failed to update milestone status:', err);
-      
-      // For demo purposes, update the UI even if the API fails
-      setMilestones(milestones.map(m => 
-        m._id === id ? { ...m, status: newStatus } : m
-      ));
     }
   };
-
   const resetForm = () => {
     // Ensure we have a valid default projectId
     setCurrentMilestone({
-      projectId: selectedProject || 0, // Use 0 as fallback
+      projectId: "", 
       title: '',
       description: '',
       dueDate: '',
@@ -298,6 +264,22 @@ const fetchMilestones = async (projectId: number) => {
         return 'secondary';
     }
   };
+  
+      const fetchCollaborators = async (projectId: string) => {
+        try {
+          const response = await axios.get(`${config.API_URL}/api/createproject/projects/${projectId}/collaborators`, {
+            withCredentials: true
+          });
+          console.log(response.data)
+          setCollaborators(response.data);
+        } catch (err) {
+          console.error(err);
+          setError('Failed to fetch collaborators.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+  
 
   const formatDate = (dateString: string): string => {
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -326,27 +308,40 @@ const fetchMilestones = async (projectId: number) => {
   const { stats, completedPercentage } = getMilestoneStats();
 
   return (
-    <Container fluid>
+    <Container fluid  ref={reportRef}>
       <Row className="mb-4">
         <Col>
-          <Card>
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center mb-3">
+          <Card >
+            <Card.Body >
+              <div className="d-flex justify-content-between align-items-center mb-3" >
                 <h4>Project Milestones</h4>
                 <div>
                   <Form.Select 
-                    value={selectedProject || ''} 
-                    onChange={(e) => setSelectedProject(Number(e.target.value))}
-                    className="d-inline-block me-2"
-                    style={{ width: 'auto' }}
-                  >
-                    {projects.map(project => (
-                      <option key={project._id} value={project._id}>{project.title}</option>
-                    ))}
-                  </Form.Select>
+                  value={selectedProject || ''} 
+                  onChange={(e) => setSelectedProject(e.target.value)}
+                  className="d-inline-block me-2"
+                  style={{ width: 'auto' }}
+                >
+                  {projects.map(project => (
+                    <option key={project._id} value={project._id}>
+                      {project.title}
+                    </option>
+                  ))}
+                </Form.Select>
+
                   <Button variant="primary" onClick={openNewMilestoneModal}>
                     <FiPlus className="me-1" /> New Milestone
                   </Button>
+
+                <Button 
+                  onClick={handleExportPDF} 
+                  disabled={exporting} 
+                  variant="success" 
+                  style={{ marginLeft: '1rem' }}
+                  >
+                  {exporting ? 'Exporting...' : 'Export as PDF'}
+                  </Button>
+
                 </div>
               </div>
               <p className="text-muted">
@@ -376,7 +371,7 @@ const fetchMilestones = async (projectId: number) => {
         <>
           <Row className="mb-4">
             <Col md={8}>
-              <Card>
+              <Card >
                 <Card.Body>
                   <h5 className="mb-3">Milestone Timeline</h5>
                   {milestones.length === 0 ? (
@@ -406,7 +401,13 @@ const fetchMilestones = async (projectId: number) => {
                               <small className="text-muted">{milestone.description}</small>
                             </td>
                             <td>{formatDate(milestone.dueDate)}</td>
-                            <td>{milestone.assignedTo}</td>
+                            <td>
+                              {
+                                collaborators.find(user => user._id === milestone.assignedTo)
+                                  ? `${collaborators.find(user => user._id === milestone.assignedTo)?.fname} ${collaborators.find(user => user._id === milestone.assignedTo)?.lname}`
+                                  : 'Unknown'
+                              }
+                            </td>
                             <td>
                               <Form.Select
                                 size="sm"
@@ -433,6 +434,7 @@ const fetchMilestones = async (projectId: number) => {
     variant="outline-danger"
     size="sm"
     onClick={() => deleteMilestone(milestone._id as string)}
+    aria-label="Delete milestone"
   >
     <FiTrash2 />
   </Button>
@@ -487,25 +489,25 @@ const fetchMilestones = async (projectId: number) => {
                 </Card.Body>
               </Card>
               <Card>
-                <Card.Body>
-                  <h5 className="mb-3">Milestone Statistics</h5>
-                  <div className="d-flex justify-content-between mb-2">
-                    <span>Total Milestones</span>
-                    <span>{milestones.length}</span>
-                  </div>
-                  <div className="d-flex justify-content-between mb-2">
-                    <span>Completed</span>
-                    <Badge bg="success">{stats[2].value}</Badge>
-                  </div>
-                  <div className="d-flex justify-content-between mb-2">
-                    <span>In Progress</span>
-                    <Badge bg="warning">{stats[1].value}</Badge>
-                  </div>
-                  <div className="d-flex justify-content-between">
-                    <span>Not Started</span>
-                    <Badge bg="danger">{stats[0].value}</Badge>
-                  </div>
-                </Card.Body>
+<Card.Body className="fs-6">
+  <h5 className="mb-3 small">Milestone Statistics</h5>
+  <div className="d-flex justify-content-between mb-2 small">
+    <span>Total Milestones</span>
+    <span>{milestones.length}</span>
+  </div>
+  <div className="d-flex justify-content-between mb-2 small">
+    <span>Completed</span>
+    <Badge bg="success">{stats[2].value}</Badge>
+  </div>
+  <div className="d-flex justify-content-between mb-2 small">
+    <span>In Progress</span>
+    <Badge bg="warning">{stats[1].value}</Badge>
+  </div>
+  <div className="d-flex justify-content-between small">
+    <span>Not Started</span>
+    <Badge bg="danger">{stats[0].value}</Badge>
+  </div>
+</Card.Body>
               </Card>
             </Col>
           </Row>
@@ -519,7 +521,7 @@ const fetchMilestones = async (projectId: number) => {
         </Modal.Header>
         <Modal.Body>
           <Form>
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3" controlId="milestoneTitle">
               <Form.Label>Title</Form.Label>
               <Form.Control
                 type="text"
@@ -530,7 +532,7 @@ const fetchMilestones = async (projectId: number) => {
                 required
               />
             </Form.Group>
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3" controlId="milestoneDescription">
               <Form.Label>Description</Form.Label>
               <Form.Control
                 as="textarea"
@@ -541,7 +543,7 @@ const fetchMilestones = async (projectId: number) => {
                 rows={3}
               />
             </Form.Group>
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3" controlId="milestoneDueDate">
               <Form.Label>Due Date</Form.Label>
               <Form.Control
                 type="date"
@@ -551,7 +553,7 @@ const fetchMilestones = async (projectId: number) => {
                 required
               />
             </Form.Group>
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3" controlId="milestoneStatus">
               <Form.Label>Status</Form.Label>
               <Form.Select
                 name="status"
@@ -563,16 +565,22 @@ const fetchMilestones = async (projectId: number) => {
                 <option value="completed">Completed</option>
               </Form.Select>
             </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Assigned To</Form.Label>
-              <Form.Control
-                type="text"
-                name="assignedTo"
-                value={currentMilestone.assignedTo}
-                onChange={handleInputChange}
-                placeholder="Enter person responsible"
-              />
-            </Form.Group>
+         <Form.Group className="mb-3" controlId="milestoneAssignedTo">
+        <Form.Label>Assigned To</Form.Label>
+        <Form.Select
+          name="assignedTo"
+          value={currentMilestone.assignedTo}
+          onChange={handleInputChange}
+        >
+          <option value="">Select a collaborator</option>
+          {collaborators.map((collab) => (
+            <option key={collab._id} value={collab._id}>
+              {collab.fname} {collab.lname}
+            </option>
+          ))}
+        </Form.Select>
+      </Form.Group>
+
           </Form>
         </Modal.Body>
         <Modal.Footer>

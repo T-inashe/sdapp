@@ -57,7 +57,7 @@ The objective is to build a **publicly accessible**, **feature-rich**, and **sec
   - Project completion status
   - Funding used vs. available
   - Custom reports
-- Export reports as **CSV** or **PDF**
+- Export reports and dashboards as **PDF**
 
 ---
 

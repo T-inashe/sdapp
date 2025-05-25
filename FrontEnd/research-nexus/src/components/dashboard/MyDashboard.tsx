@@ -62,13 +62,13 @@ interface Milestone {
 // Define funding types
 interface FundingSource {
   _id?: string;
-  name: string;
+  funder:string;
   amount: number;
   currency: 'USD' | 'EUR' | 'GBP' | string;
   status: 'pending' | 'approved' | 'rejected' | 'disbursed';
   startDate: string;
   endDate: string;
-  projectId?: string;
+  projectId?:{title:string}
   description?: string;
   agency?: string;
 }
@@ -116,7 +116,40 @@ const MyDashboard: React.FC = () => {
 const [loadingCollaborators, setLoadingCollaborators] = useState<boolean>(false);
 const [collaboratorSearch, setCollaboratorSearch] = useState<string>('');
 const [filteredCollaborators, setFilteredCollaborators] = useState<Collaborator[]>([]);
+const reportRef = useRef<HTMLDivElement>(null);
+   const [exporting, setExporting] = useState(false);
 
+const handleExportPDF = async () => {
+  if (!reportRef.current) return;
+
+  setExporting(true);
+
+  try {
+    // @ts-ignore
+    const html2canvas = window.html2canvas;
+    // @ts-ignore
+    const { jsPDF } = window.jspdf;
+
+    const canvas = await html2canvas(reportRef.current, {
+      useCORS: true, 
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.7);
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    // Calculate image dimensions to fit A4
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('report.pdf');
+  } catch (err) {
+    console.error('PDF export error:', err);
+  } finally {
+    setExporting(false);
+  }
+};
 
   // Load dashboard configuration from localStorage or set default on first load
   useEffect(() => {
@@ -411,9 +444,6 @@ const fetchMilestones = async (projectId: number | string) => {
             ))
           )}
         </Card.Body>
-        <Card.Footer className="text-center">
-          <Link to="/projects" className="text-primary text-decoration-none">View All Projects</Link>
-        </Card.Footer>
       </Card>
     );
   };
@@ -550,7 +580,8 @@ const renderMilestonesWidget = (widget: WidgetConfig) => {
                 {fundingSources.slice(0, widget.size === 'small' ? 2 : 3).map((funding) => (
                   <div key={funding._id} className="mb-3 border-bottom pb-2">
                     <div className="d-flex justify-content-between align-items-center mb-1">
-                      <h6 className="mb-0">{funding.name}</h6>
+                      <h6 className="mb-0">Funder:{funding.funder}</h6>
+                      <h6 className="mb-0">Research Project:{funding.projectId?.title}</h6>
                       <Badge bg={getStatusColor(funding.status)}>
                         {funding.status}
                       </Badge>
@@ -560,12 +591,12 @@ const renderMilestonesWidget = (widget: WidgetConfig) => {
                       <span className="fw-bold text-success">
                         {formatCurrency(funding.amount, funding.currency)}
                       </span>
-                      <small className="text-muted">{funding.agency}</small>
+                      <small className="text-muted">{funding.funder}</small>
                     </div>
                     
                     <div className="d-flex justify-content-between align-items-center">
                       <small className="text-muted">
-                        {formatDate(funding.startDate)} - {formatDate(funding.endDate)}
+                        End Date {formatDate(funding.endDate)}
                       </small>
                       <small className="text-muted">
                         {Math.round((new Date(funding.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days left
@@ -722,7 +753,7 @@ const renderCollaboratorsWidget = (widget: WidgetConfig) => {
   }
 
   return (
-    <Container fluid className="py-4">
+    <Container fluid className="py-4" ref={reportRef}>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h3>My Dashboard</h3>
         <Button 
@@ -732,7 +763,19 @@ const renderCollaboratorsWidget = (widget: WidgetConfig) => {
         >
           <FiPlus className="me-2" /> Add Widget
         </Button>
+
+          <div style={{ display: 'flex' }}>
+              <Button 
+              variant="secondary" 
+                onClick={handleExportPDF} 
+                disabled={exporting}
+                style={{ marginLeft: 'auto' }}
+              >
+                {exporting ? 'Exporting...' : 'Export as PDF'}
+              </Button>
+            </div>
       </div>
+      
 
       <p className="text-muted mb-4">
         Customize your dashboard by adding or removing widgets to monitor the specific metrics 

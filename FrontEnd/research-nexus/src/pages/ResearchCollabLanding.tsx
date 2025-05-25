@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import image from '../assets/WhatsApp Image 2025-05-05 at 19.53.48_245a21d6.jpg'
 import CreatingImage from '../assets/image.png'
 import ResearcherImage from '../assets/Screenshot 2025-05-16 013634.png'
+import Dash from "../assets/dash.png"
 import { Navbar, Nav, Container, Button, Card, Row, Col } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 
@@ -176,7 +177,7 @@ function ResearchCollabLanding() {
           <Row className="align-items-center">
             <Col md={6} className="mb-4 mb-md-0">
               <img 
-                src="/api/placeholder/500/300" 
+                src={Dash}
                 alt="Managing research projects" 
                 className="img-fluid rounded shadow" 
               />

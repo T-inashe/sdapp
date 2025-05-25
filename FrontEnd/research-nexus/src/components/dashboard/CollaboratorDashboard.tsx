@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { Container, Row, Col, Card, Button, Badge, Nav, Alert, Form } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Badge, Nav, Alert, Form, Modal } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
 import { FiUsers, FiFileText, FiMessageSquare, FiCalendar, FiSettings, FiLogOut, FiSearch, FiBriefcase, } from 'react-icons/fi';
@@ -31,6 +31,7 @@ interface Project {
   contact_email: string;
   created_at: string;
   status?: string;
+  skills:string[];
   role?: string;
   file: {
     data: "base64-string",
@@ -93,8 +94,68 @@ const CollaboratorDashboard: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [projectName, setProjectName] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [skillType, setSkillType] = useState<'research' | 'technical' | null>(null);
+  const [newSkill, setNewSkill] = useState('');
+  const [formData, setFormData] =useState<{ skills: string[] }>({ skills: [] });
 
+ useEffect(() => {
+    async function fetchUserSkills() {
+      if (!user?.id) return;
+      setIsLoading(true);
+      try {
+        const res = await axios.get(`${config.API_URL}/api/users/${user.id}`);
+        setFormData({
+          skills: Array.isArray(res.data.skills) ? res.data.skills : [],
+        });
+      } catch (err) {
+        console.error('Error fetching user skills:', err);
+        setError('Failed to load skills.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchUserSkills();
+  }, [user, config.API_URL]);
 
+  // Handle adding a new skill
+  const handleAddSkill = async () => {
+    if (!newSkill.trim()) return;
+
+    setIsLoading(true);
+
+    try {
+      // Fetch fresh user data to avoid overwrite
+      const response = await axios.get(`${config.API_URL}/api/users/${user?.id}`);
+      const userData = response.data;
+
+      // Use consistent field name "skills"
+      const existingSkills = Array.isArray(userData.skills) ? userData.skills : [];
+
+      // Add new skill uniquely
+      const updatedSkills = [...new Set([...existingSkills, newSkill.trim()])];
+
+      // Update user skills on server
+      await axios.put(`${config.API_URL}/api/users/${user?.id}`, {
+        skills: updatedSkills,
+      });
+
+      // Update local state
+      setFormData(prev => ({
+        ...prev,
+        skills: updatedSkills,
+      }));
+
+      // Reset modal state
+      setShowModal(false);
+      setNewSkill('');
+    } catch (err) {
+      console.error('Error adding skill:', err);
+      setError('Failed to add skill. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const fetchOpportunities = async () => {
     try {
       const response = await axios.get(`${config.API_URL}/api/createproject/creator/${user?.id}`);
@@ -437,7 +498,7 @@ const CollaboratorDashboard: React.FC = () => {
             <Link to="/projects/create">
               <Button variant="primary" className="me-2">New Project</Button>
             </Link>
-            <Button variant="outline-primary">Find Collaborators</Button>
+            <Button variant="outline-primary"  onClick={() => setActiveTab('opportunities')}>Find Collaborators</Button>
           </div>
         </div>
 
@@ -643,38 +704,64 @@ const CollaboratorDashboard: React.FC = () => {
 
                 <h4 className="mb-3 mt-4">Skills Profile</h4>
                 <Card>
-                  <Card.Body>
-                    <div className="skills-section">
-                      <h6>Research Areas</h6>
-                      <div className="mb-3">
-                        <Badge bg="primary" className="me-2 mb-2">Machine Learning</Badge>
-                        <Badge bg="primary" className="me-2 mb-2">Data Analysis</Badge>
-                        <Badge bg="primary" className="me-2 mb-2">Neuroscience</Badge>
-                        <Badge bg="light" text="dark" className="mb-2">+ Add</Badge>
-                      </div>
-                      
-                      <h6>Technical Skills</h6>
-                      <div className="mb-3">
-                        <Badge bg="secondary" className="me-2 mb-2">Python</Badge>
-                        <Badge bg="secondary" className="me-2 mb-2">R</Badge>
-                        <Badge bg="secondary" className="me-2 mb-2">Statistical Analysis</Badge>
-                        <Badge bg="secondary" className="me-2 mb-2">MATLAB</Badge>
-                        <Badge bg="light" text="dark" className="mb-2">+ Add</Badge>
-                      </div>
-                      
-                      <h6>Publications</h6>
-                      <p className="small text-muted">3 publications in peer-reviewed journals</p>
-                      
-                      <div className="text-center mt-3">
-                        <Link to="/profile/skills">
-                          <Button variant="outline-primary" size="sm">
-                            Update Skills Profile
-                          </Button>
-                        </Link>
-                      </div>
+                <Card.Body>
+                  <div className="skills-section">
+                    <h6>Technical Skills</h6>
+                    <div className="mb-3 d-flex flex-wrap align-items-start">
+                      {formData.skills?.map((skill, index) => (
+                        <Badge key={index} bg="secondary" className="me-2 mb-2">
+                          {skill}
+                        </Badge>
+                      ))}
+
+                      <Badge
+                        bg="light"
+                        text="dark"
+                        className="mb-2"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => {
+                          setSkillType('technical');
+                          setShowModal(true);
+                        }}
+                      >
+                        + Add
+                      </Badge>
                     </div>
-                  </Card.Body>
-                </Card>
+
+                    <div className="text-center mt-3">
+                    </div>
+                  </div>
+                </Card.Body>
+
+                {/* Modal for Adding Skill */}
+                <Modal show={showModal} onHide={() => setShowModal(false)} centered>
+                  <Modal.Header closeButton>
+                    <Modal.Title>Add {skillType === 'technical' ? 'Technical' : 'Research'} Skill</Modal.Title>
+                  </Modal.Header>
+                  <Modal.Body>
+                    <Form>
+                      <Form.Group controlId="formNewSkill">
+                        <Form.Label>Skill Name</Form.Label>
+                        <Form.Control
+                          type="text"
+                          placeholder="Enter skill"
+                          value={newSkill}
+                          onChange={(e) => setNewSkill(e.target.value)}
+                        />
+                      </Form.Group>
+                    </Form>
+                  </Modal.Body>
+                  <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowModal(false)}>
+                      Cancel
+                    </Button>
+                    <Button variant="primary" onClick={handleAddSkill}>
+                      Add Skill
+                    </Button>
+                  </Modal.Footer>
+                </Modal>
+              </Card>
+
                 <h4 className="mb-3 mt-4">Upcoming Deadlines</h4>
                 <Card>
                   <Card.Body>

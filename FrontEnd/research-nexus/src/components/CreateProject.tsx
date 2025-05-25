@@ -45,6 +45,8 @@ function CreateProject(): JSX.Element {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
+  const [dateError, setDateError] = useState('');
+
 
 
   const research_areas: string[] = [
@@ -65,15 +67,36 @@ function CreateProject(): JSX.Element {
     'Other'
   ];
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-    setFormData({
-      ...formData,
-      creator: user?.id || '',
-      [name]: type === 'checkbox' ? checked : value
-    });
+const handleChange = (
+  e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+) => {
+  const { name, value, type } = e.target;
+  const checked = (e.target as HTMLInputElement).checked;
+
+  // Prepare new formData
+  const updatedFormData = {
+    ...formData,
+    creator: user?.id || '',
+    [name]: type === 'checkbox' ? checked : value
   };
+
+  // Optional: Handle date validation
+  if ((name === 'start_date' || name === 'end_date') &&
+      updatedFormData.start_date &&
+      updatedFormData.end_date) {
+    const start = new Date(updatedFormData.start_date);
+    const end = new Date(updatedFormData.end_date);
+
+    if (start > end) {
+      setDateError('Start date cannot be after end date.');
+    } else {
+      setDateError('');
+    }
+  }
+
+  setFormData(updatedFormData);
+};
+
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -211,30 +234,32 @@ function CreateProject(): JSX.Element {
                     <Form.Group className="mb-3">
                       <Form.Label>Start Date *</Form.Label>
                       <Form.Control
-                        type="date"
-                        name="start_date"
-                        value={formData.start_date}
-                        onChange={handleChange}
-                        required
-                      />
-                      <Form.Control.Feedback type="invalid">
-                        Please select a start date.
-                      </Form.Control.Feedback>
+                      type="date"
+                      name="start_date"
+                      value={formData.start_date}
+                      onChange={handleChange}
+                      isInvalid={!!dateError}
+                      required
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {dateError || 'Please select a start date.'}
+                    </Form.Control.Feedback>
                     </Form.Group>
                   </Col>
                   <Col md={6}>
                     <Form.Group className="mb-3">
                       <Form.Label>End Date *</Form.Label>
                       <Form.Control
-                        type="date"
-                        name="end_date"
-                        value={formData.end_date}
-                        onChange={handleChange}
-                        required
-                      />
-                      <Form.Control.Feedback type="invalid">
-                        Please select an end date.
-                      </Form.Control.Feedback>
+                      type="date"
+                      name="end_date"
+                      value={formData.end_date}
+                      onChange={handleChange}
+                      isInvalid={!!dateError}
+                      required
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {dateError || 'Please select an end date.'}
+                    </Form.Control.Feedback>
                     </Form.Group>
                   </Col>
                 </Row>

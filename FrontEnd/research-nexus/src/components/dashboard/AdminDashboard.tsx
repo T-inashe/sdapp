@@ -14,6 +14,8 @@ interface User {
   contact:string;
   department: string;
   createdAt: string;
+  skills:string[];
+
 }
 
 interface Proposal {
@@ -333,8 +335,11 @@ const AdminDashboard: React.FC = () => {
                           <th>Name</th>
                           <th>Institution</th>
                           <th>Contact</th>
+                          <th>Role</th>
+                          <th>Badge</th>
                           <th>Joined</th>
                           <th>Actions</th>
+
                         </tr>
                       </thead>
                       <tbody>
@@ -580,29 +585,36 @@ const AdminDashboard: React.FC = () => {
                 ) : (
                   reviewers.map(reviewer => (
                     <Card key={reviewer._id} className="mb-2">
-                      <Card.Body className="py-2">
-                        <Form.Check
-                          type="checkbox"
-                          id={`reviewer-${reviewer._id}`}
-                          label={
-                            <div>
-                              <strong>{reviewer.fname} {reviewer.lname}</strong>
-                              <span className="text-muted"> ({reviewer.department})</span>
-                              <div>
-                                {reviewer.expertise?.map((exp, idx) => (
-                                  <Badge bg="light" text="dark" className="me-1" key={idx}>
-                                    {exp}
-                                  </Badge>
-                                ))}
-                                {!reviewer.expertise?.length && <span className="text-muted small">No expertise listed</span>}
-                              </div>
-                            </div>
-                          }
-                          checked={selectedReviewers.includes(reviewer._id)}
-                          onChange={() => handleReviewerSelection(reviewer._id)}
-                        />
-                      </Card.Body>
-                    </Card>
+  <Card.Body className="py-2">
+    <Form.Check
+      type="checkbox"
+      id={`reviewer-${reviewer._id}`}
+      label={
+        <div>
+          <strong>{reviewer.fname} {reviewer.lname}</strong>
+          <span className="text-muted"> ({reviewer.department})</span>
+          <div className="mt-1">
+            {(() => {
+              const matchedUser = users.find(user => user._id === reviewer._id);
+              if (!matchedUser || !matchedUser.skills || matchedUser.skills.length === 0) {
+                return <span className="text-muted small">No expertise listed</span>;
+              } else {
+                return matchedUser.skills.map((skill, index) => (
+                  <Badge key={index} bg="secondary" className="me-1 mb-1">
+                    {skill}
+                  </Badge>
+                ));
+              }
+            })()}
+          </div>
+        </div>
+      }
+      checked={selectedReviewers.includes(reviewer._id)}
+      onChange={() => handleReviewerSelection(reviewer._id)}
+    />
+  </Card.Body>
+</Card>
+
                   ))
                 )}
               </div>
